@@ -112,6 +112,11 @@ class Settings:
             ]
             origins.extend(local_ips)
         
+        # Production: allow FRONTEND_URL and DASHBOARD_BASE_URL so CORS works when served via nginx
+        for url in (self.FRONTEND_URL, self.DASHBOARD_BASE_URL):
+            if url and url.rstrip("/") not in [o.rstrip("/") for o in origins]:
+                origins.append(url.rstrip("/"))
+        
         return origins
     
     CORS_ALLOW_CREDENTIALS: bool = True

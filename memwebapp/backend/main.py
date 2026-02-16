@@ -227,8 +227,9 @@ async def api_root():
     return {"message": settings.APP_NAME, "version": settings.APP_VERSION}
 
 @app.get("/health")
+@app.get("/healthcheck")
 async def health_check():
-    """Health check endpoint for monitoring"""
+    """Health check endpoint for monitoring (frontend may call /healthcheck)"""
     return {"status": "healthy", "version": settings.APP_VERSION}
 
 # Debug endpoint - only available in development

@@ -1,0 +1,25 @@
+# Memo App Backend - systemd service
+# Backend runs on port 8002 (set via environment)
+# Install: sudo cp deploy/memoapp-backend.service /etc/systemd/system/
+#         sudo systemctl daemon-reload
+#         sudo systemctl enable memoapp-backend
+#         sudo systemctl start memoapp-backend
+
+[Unit]
+Description=Memo App Backend API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/memoapp/memwebapp/backend
+Environment=PORT=8002
+Environment=NODE_ENV=production
+EnvironmentFile=-/home/ubuntu/memoapp/memwebapp/backend/.env
+ExecStart=/home/ubuntu/memoapp/memwebapp/backend/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8002
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

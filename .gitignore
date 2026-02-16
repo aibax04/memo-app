@@ -1,62 +1,9 @@
-# OS generated files
+# Local npm cache (used by run_local.sh to avoid EACCES on ~/.npm)
+.npm-cache/
+
+# Sensitive / generated (do not push)
+*.pem
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Environments and Secrets (Global patterns)
-**/.env
-**/.env.backup
-**/.env.*
-**/*.pem
-**/*.key
-**/*.cert
-**/*.p12
-
-# Virtual Environments
-**/.venv/
-**/venv/
-**/env/
-**/ENV/
-
-# Python
-**/__pycache__/
-**/*.py[cod]
-**/*$py.class
-**/*.egg-info/
-**/.pytest_cache/
-**/.mypy_cache/
-**/.ruff_cache/
-**/uv.lock
-
-# JavaScript / Node.js
-**/node_modules/
-**/npm-debug.log*
-**/yarn-debug.log*
-**/yarn-error.log*
-**/.npm/
-**/.npm-cache/
-**/.vite/
-**/.turbo/
-**/.next/
-**/dist/
-**/build/
-
-# Databases
-**/*.db
-**/*.sqlite
-**/*.sqlite3
-**/*.sqlite3-journal
-
-# Logs and Temp
-**/*.log
 **/temp_audio/
 **/temp_error.txt
-**/analytics_output/
-**/uploads/
-**/downloads/
-**/target/
-**/.bin/
+memwebapp/frontend/.vite/

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { loginUser } from "@/services/api";
 
 const Login: React.FC = () => {
@@ -22,93 +22,92 @@ const Login: React.FC = () => {
 
     try {
       console.log("🔑 Attempting login with:", { email });
-
+      
+      // Try API login first
       const apiResult = await loginUser(email, password);
-
+      
       if (apiResult.access_token) {
-        console.log("✅ API login successful");
-
+        console.log("✅ API login successful with token:", apiResult.access_token.substring(0, 10) + "...");
+        
+        // Store the user in local storage as expected by other parts of the app
+        // This avoids the need to use Supabase login at all
         const apiUser = {
-          id: email,
+          id: email, // Use email as ID for now
           email: email,
-          name: email.split('@')[0],
+          name: email.split('@')[0], // Use part before @ as name
         };
-
+        
         localStorage.setItem("dashboardUser", JSON.stringify(apiUser));
-
+        
+        // Still call the login function to update app state, but don't let it throw errors
         try {
+          // We're passing email and password but we don't expect this to validate
+          // since we've already set the user in localStorage
           await login(email, password);
         } catch (loginErr) {
-          console.log("Supabase login optional.");
+          console.log("Supabase login attempt failed, but API login successful. Proceeding with API auth.");
         }
-
-        toast.success("Welcome back!", {
-          style: { background: '#10b981', color: '#fff', border: 'none' }
-        });
+        
+        toast.success("Login successful!");
         navigate("/");
       } else {
+        console.log("API login failed, falling back to Supabase", apiResult.error);
+        // Fallback to Supabase login
         await login(email, password);
-        toast.success("Welcome back!");
+        toast.success("Login successful!");
         navigate("/");
       }
     } catch (error: any) {
       console.error("❌ Login error:", error);
-      toast.error(error.message || "Login failed", {
-        style: { background: '#ef4444', color: '#fff', border: 'none' }
-      });
+      toast.error(error.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-col space-y-8 w-full">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-white">Sign In</h1>
-        <p className="text-slate-400 text-sm">Enter your credentials to access your meetings</p>
+    <div className="flex flex-col space-y-6 w-full max-w-md">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold tracking-tighter bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+          Memo App
+        </h1>
+        <p className="text-muted-foreground">
+          Welcome back! Please sign in to continue.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
-            Email Address
+          <Label htmlFor="email" className="text-sm font-medium">
+            Email
           </Label>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-            </div>
+          <div className="relative">
+            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
             <Input
               id="email"
               type="email"
-              placeholder="name@company.com"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12 bg-[#0D1117] border-slate-800 text-white placeholder:text-slate-600 rounded-xl focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+              className="pl-10"
               required
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
-              Password
-            </Label>
-            <Link to="#" className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
-              Forgot password?
-            </Link>
-          </div>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-            </div>
+          <Label htmlFor="password" className="text-sm font-medium">
+            Password
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12 bg-[#0D1117] border-slate-800 text-white placeholder:text-slate-600 rounded-xl focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+              className="pl-10"
               required
             />
           </div>
@@ -116,39 +115,27 @@ const Login: React.FC = () => {
 
         <Button
           type="submit"
-          className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98] group"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
             <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3" />
-              <span>Checking...</span>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2" />
+              <span>Signing in...</span>
             </div>
           ) : (
-            <div className="flex items-center justify-center">
-              <span>Sign In</span>
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </div>
+            "Sign In"
           )}
         </Button>
       </form>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-slate-800"></span>
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-[#161B22] px-3 text-slate-500 font-medium">New to Memo?</span>
-        </div>
-      </div>
-
       <div className="text-center">
-        <Link
-          to="/signup"
-          className="inline-flex items-center justify-center px-6 py-3 w-full border border-slate-800 text-slate-300 font-semibold rounded-xl hover:bg-white/5 hover:text-white transition-all active:scale-[0.98]"
-        >
-          Create an account
-        </Link>
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-blue-600 hover:underline font-medium">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );

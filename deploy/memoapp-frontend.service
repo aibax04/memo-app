@@ -1,0 +1,22 @@
+# Memo App Frontend - systemd service (Vite preview on port 5173)
+# Install: sudo cp deploy/memoapp-frontend.service /etc/systemd/system/
+#         sudo systemctl daemon-reload
+#         sudo systemctl enable memoapp-frontend
+#         sudo systemctl start memoapp-frontend
+
+[Unit]
+Description=Memo App Frontend (port 5173)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/memoapp/memwebapp/frontend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npx vite preview --host 0.0.0.0 --port 5173
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

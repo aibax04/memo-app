@@ -221,9 +221,6 @@ class DashboardService:
             "avg_duration_minutes": self._safe_int(analytics_data.get("avg_duration_minutes", 0)),
             "active_participation": self._safe_int(analytics_data.get("active_participation", 0)),
             "engagement_level": self._safe_int(analytics_data.get("engagement_level", 0)),
-            "speaking_distribution": self._safe_int(analytics_data.get("speaking_distribution", 0)),
-            "listening_quality": self._safe_int(analytics_data.get("listening_quality", 0)),
-            "participation_balance": self._safe_int(analytics_data.get("participation_balance", 0)),
             "chat_contributions": self._safe_int(analytics_data.get("chat_contributions", 0)),
             "poll_responses": self._safe_int(analytics_data.get("poll_responses", 0)),
             
@@ -269,16 +266,6 @@ class DashboardService:
             "duration_minutes": self._safe_int(analytics_data.get("duration_minutes", 0)),
             "transcriptions": self._format_transcriptions(analytics_data.get("transcriptions", []))
         }
-
-        # Add Audio Insights (if available)
-        if "key_moments" in analytics_data:
-            dashboard_data["key_moments"] = analytics_data.get("key_moments", [])
-        if "notable_silences" in analytics_data:
-            dashboard_data["notable_silences"] = self._safe_int(analytics_data.get("notable_silences", 0))
-        if "energy_shifts" in analytics_data:
-            dashboard_data["energy_shifts"] = self._safe_int(analytics_data.get("energy_shifts", 0))
-        if "speech_patterns" in analytics_data:
-            dashboard_data["speech_patterns"] = analytics_data.get("speech_patterns", [])
         
         logger.info(f"✅ Dashboard payload mapped successfully - {len(dashboard_data)} fields")
         logger.info(f"Key metrics: audio_clarity={dashboard_data.get('audio_clarity')}, video_quality={dashboard_data.get('video_quality')}, engagement_level={dashboard_data.get('engagement_level')}")

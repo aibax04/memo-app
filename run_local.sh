@@ -11,7 +11,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Paths: support running from repo root (memo-webapp) or from memwebapp
+# Paths: support running from repo root (opticall-mobile-backend) or from memwebapp
 if [[ -d "memwebapp" ]]; then
   MEMWEBAPP="memwebapp"
 else

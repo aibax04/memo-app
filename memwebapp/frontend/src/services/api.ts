@@ -2,7 +2,11 @@
 
 import { toast } from "sonner";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Use VITE_API_URL if set (empty string = same origin for nginx proxy in production)
+const API_BASE_URL =
+  (import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== null)
+    ? String(import.meta.env.VITE_API_URL)
+    : (import.meta.env.DEV ? "http://localhost:8000" : "");
 const API_TIMEOUT = 180000; // Extended to 60 seconds (from 30) to give more time for chart generation
 const TOKEN_EXPIRY_DAYS = 7; // Token will expire after 7 days
 
@@ -13,7 +17,7 @@ let accessToken: string | null = localStorage.getItem('memoapp_access_token');
 const isTokenExpired = (): boolean => {
   const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
   if (!tokenTimestamp) return true;
-
+  
   const expiryTimeMs = parseInt(tokenTimestamp) + (TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
   return Date.now() > expiryTimeMs;
 };
@@ -36,8 +40,8 @@ interface ApiOptions {
 
 // Helper function to make authenticated API calls
 export const callApi = async (
-  endpoint: string,
-  method: string = 'GET',
+  endpoint: string, 
+  method: string = 'GET', 
   body?: any,
   useAuth: boolean = true,
   contentType: string = 'application/json'
@@ -59,11 +63,11 @@ export const callApi = async (
     if (body) {
       console.log('Request Body:', body);
     }
-
+    
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-
+    
     const options: ApiOptions = {
       method,
       headers: {
@@ -98,26 +102,21 @@ export const callApi = async (
     });
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-
+    
     // Clear the timeout
     clearTimeout(timeoutId);
-
+    
     console.log(`Response status: ${response.status}`);
-
+    
     // Handle 401 Unauthorized globally
     if (response.status === 401) {
       console.error('Authentication failed. Token may be expired.');
       localStorage.removeItem('memoapp_access_token');
       localStorage.removeItem('memoapp_token_timestamp');
       localStorage.removeItem('memoapp_auth_data');
-      localStorage.removeItem('dashboardUser'); // Also clear the user data
       accessToken = null;
-
-      // Use window.location.pathname to avoid infinite redirect loops
-      if (window.location.pathname !== '/login') {
-        toast.error("Authentication failed. Please log in again.");
-        window.location.href = '/login'; // Redirect to login
-      }
+      toast.error("Authentication failed. Please log in again.");
+      window.location.href = '/login'; // Redirect to login
       return { error: "Authentication failed" };
     }
 
@@ -135,35 +134,35 @@ export const callApi = async (
         data = { text, status: response.status };
       }
     }
-
+    
     console.log(`✅ API Response: ${method} ${endpoint}`, data);
-
+    
     if (!response.ok) {
       console.error(`❌ API Error: ${response.status} ${response.statusText}`, data);
       return { error: data.detail || data || "API error occurred", status: response.status };
     }
-
+    
     return data;
   } catch (error) {
     console.error(`❌ API Error: ${method} ${endpoint}`, error);
     // Handle specific error types
     if (error instanceof TypeError && error.message === "Failed to fetch") {
-      return {
-        error: "Failed to fetch",
+      return { 
+        error: "Failed to fetch", 
         networkError: true,
         message: "Network error: Unable to connect to the server. Please check your internet connection."
       };
     }
     // Handle timeout errors
     if (error instanceof DOMException && error.name === 'AbortError') {
-      return {
-        error: "Request timeout",
+      return { 
+        error: "Request timeout", 
         networkError: true,
         message: "The request took too long to complete. The server might be busy processing other requests. Please try again in a moment."
       };
     }
-
-    return {
+    
+    return { 
       error: error instanceof Error ? error.message : "Unknown error occurred",
       networkError: true,
       message: "An unexpected error occurred. Please try again."
@@ -176,15 +175,15 @@ export const loginUser = async (username: string, password: string): Promise<any
   console.log('🔑 Attempting to login with username:', username);
   // Important: Use application/x-www-form-urlencoded for token endpoint
   const result = await callApi(
-    '/token',
-    'POST',
-    { username, password },
-    false,
+    '/token', 
+    'POST', 
+    { username, password }, 
+    false, 
     'application/x-www-form-urlencoded'
   );
-
+  
   console.log('Login result:', result);
-
+  
   if (result.access_token) {
     // Save token to memory and localStorage
     accessToken = result.access_token;
@@ -198,13 +197,13 @@ export const loginUser = async (username: string, password: string): Promise<any
     };
     localStorage.setItem('memoapp_auth_data', JSON.stringify(authData));
 
-    console.log('🔑 User authenticated successfully with token:',
+    console.log('🔑 User authenticated successfully with token:', 
       result.access_token.substring(0, 10) + '...',
       `(expires in ${TOKEN_EXPIRY_DAYS} days)`
     );
     return result;
   }
-
+  
   return { error: result.error || "Login failed" };
 };
 
@@ -214,11 +213,264 @@ export const createUser = async (email: string, password: string, name?: string)
   if (name) {
     Object.assign(userData, { name });
   }
-
+  
   return await callApi('/users/', 'POST', userData, false);
 };
 
+// Dashboard functions
+export const createDashboard = async (title: string, description?: string): Promise<any> => {
+  console.log('📊 Creating new dashboard:', title);
+  const response = await callApi('/dashboards/', 'POST', { title, description });
+  
+  // Log the response for debugging
+  console.log('Dashboard creation response:', response);
+  
+  if (response && !response.error) {
+    // Ensure we have a valid dashboard ID
+    const dashboardId = response.id || response.dashboard_id;
+    
+    if (!dashboardId) {
+      console.warn('Dashboard created but no ID returned from API');
+    } else {
+      console.log(`Dashboard created successfully with ID: ${dashboardId}`);
+    }
+  }
+  
+  return response;
+};
 
+export const getDashboards = async (): Promise<any> => {
+  console.log('📋 Fetching all dashboards');
+  return await callApi('/dashboards/');
+};
+
+export const getDashboard = async (dashboardId: string | number, page:number=1, limit:number=6): Promise<any> => {
+  console.log(`📊 Fetching dashboard with ID: ${dashboardId}`);
+  
+  try {
+    const response = await callApi(`/dashboards/${dashboardId}`);
+    
+    // Log the complete response for debugging
+    console.log('getDashboard raw response:', JSON.stringify(response).substring(0, 500) + '...');
+    
+    // Make sure to handle both the dashboard data and its charts
+    if (!response.error && response) {
+      // Get charts for this dashboard if they're not included in the response
+      const chartsAPiResponse = await getDashboardCharts(dashboardId, page, limit);
+      if (!response.charts || !Array.isArray(response.charts)) {
+        console.log("Charts not found in response, fetching charts separately");
+        const chartsResponse = chartsAPiResponse.charts;
+        const totalPages = chartsAPiResponse.totalPages;
+        if (!chartsResponse.error && Array.isArray(chartsResponse)) {
+          response.charts = chartsResponse.map(chart => {
+            // Process chart data to match the expected format in frontend
+            let chartData = {};
+            
+            // Extract data from the API response format
+            if (chart.config?.data?.data?.datasets) {
+              chartData = chart.config.data;
+            } else if (chart.config?.data?.datasets) {
+              chartData = chart.config.data;
+            } else if (chart.config?.data) {
+              chartData = { data: chart.config.data };
+            }
+            
+            return {
+              id: chart.id?.toString() || '',
+              name: chart.title || '',
+              prompt: chart.config?.query || '',
+              type: chart.chart_type || 'bar',
+              data: chartData,
+              createdAt: chart.created_at || new Date().toISOString(),
+              bookmark: chart.bookmark || false,
+              sql: chart.config?.sql || '',
+              geminiDirectResponse: chart.config?.geminiResponse || null,
+            };
+          });
+          console.log(`✅ Fetched ${chartsResponse.length} charts for dashboard ${dashboardId}`);
+        } else {
+          console.error("❌ Error fetching charts:", chartsResponse.error || "Unknown error");
+          // Initialize with empty array if chart fetch fails
+          response.charts = [];
+        }
+      } else if (Array.isArray(response.charts)) {
+        // Process chart data if it's already in the response
+        response.charts = response.charts.map(chart => {
+          let chartData = {};
+          
+          // Extract data from the API response format
+          if (chart.config?.data?.data?.datasets) {
+            chartData = chart.config.data;
+          } else if (chart.config?.data?.datasets) {
+            chartData = chart.config.data;
+          } else if (chart.config?.data) {
+            chartData = { data: chart.config.data };
+          }
+          
+          return {
+            id: chart.id?.toString() || '',
+            name: chart.title || '',
+            prompt: chart.config?.query || '',
+            type: chart.chart_type || 'bar',
+            data: chartData,
+            createdAt: chart.created_at || new Date().toISOString(),
+            bookmark: chart.bookmark || false,
+            sql: chart.config?.sql || '',
+            geminiDirectResponse: chart.config?.geminiResponse || null
+          };
+        });
+        console.log(`✅ Dashboard includes ${response.charts.length} charts`);
+      }
+      
+      // Always ensure charts property exists
+      if (!response.charts) {
+        response.charts = [];
+      }
+      
+      // Return the full dashboard object with charts
+      return {
+        id: response.id || dashboardId,
+        name: response.title || '',
+        description: response.description || '',
+        totalPages: chartsAPiResponse.total_pages,
+        updatedAt: response.updated_at || new Date().toISOString(),
+        charts: response.charts || []
+      };
+    }
+    
+    return { 
+      error: response.error || "Failed to fetch dashboard",
+      charts: [] // Always provide empty charts array even on error
+    };
+  } catch (error) {
+    console.error("❌ Error in getDashboard:", error);
+    return { 
+      error: error instanceof Error ? error.message : "Unknown error in getDashboard",
+      charts: [] // Always provide empty charts array even on error
+    };
+  }
+};
+
+export const updateDashboard = async (dashboardId: string | number, title: string, description?: string): Promise<any> => {
+  console.log(`🔄 Updating dashboard with ID: ${dashboardId}`);
+  return await callApi(`/dashboards/${dashboardId}`, 'PUT', { title, description });
+};
+
+export const deleteDashboard = async (dashboardId: string | number): Promise<any> => {
+  console.log(`🗑️ Deleting dashboard with ID: ${dashboardId}`);
+  return await callApi(`/dashboards/${dashboardId}`, 'DELETE');
+};
+
+// Chart functions
+export const getDashboardCharts = async (dashboardId: string | number, page:number=1, limit:number=6): Promise<any> => {
+  console.log(`📈 Fetching charts for dashboard ID: ${dashboardId}`);
+  const response = await callApi(`/dashboards/${dashboardId}/charts?page=${page}&limit=${limit}`);
+  console.log(response);
+  if (Array.isArray(response.charts)) {
+    console.log(`✅ Charts fetched via API:`, response.charts);
+    return response;
+  }
+  return { error: response.error || "Failed to fetch charts", charts: [] };
+};
+
+export const getChart = async (chartId: string | number): Promise<any> => {
+  console.log(`📈 Fetching chart with ID: ${chartId}`);
+  return await callApi(`/charts/${chartId}`);
+};
+
+export const createChart = async (
+  dashboardId: string | number, 
+  title: string, 
+  chartType: string,
+  config: any
+): Promise<any> => {
+  console.log(`📊 Creating new chart for dashboard ID: ${dashboardId}`);
+  return await callApi('/charts/', 'POST', { 
+    dashboard_id: dashboardId, 
+    title, 
+    chart_type: chartType,
+    config
+  });
+};
+
+export const generateChart = async (
+  dashboard_id: number | string,
+  title: string,
+  prompt: string,
+  filters: string[] = [],
+  dataSource: string = "dishtv"
+): Promise<any> => {
+  console.log(`🔮 Generating chart with prompt: "${prompt}"`);
+  try {    
+    return await callApi('/generate_chart', 'POST', {
+      dashboard_id,
+      title,
+      prompt,
+      filters,
+      dataSource
+    });
+  } catch (error) {
+    console.error('Chart generation error:', error);
+    return { 
+      error: error instanceof Error ? error.message : "Failed to generate chart", 
+      networkError: true,
+      message: "We couldn't connect to the chart generation service. Please try again in a moment."
+    };
+  }
+};
+
+export const updateChart = async (
+  chartId: string | number, 
+  title: string, 
+  chartType: string,
+  config: any,
+  dashboardId?: string | number
+): Promise<any> => {
+  console.log(`🔄 Updating chart with ID: ${chartId} to type: ${chartType}`);
+  
+  const requestBody: any = { 
+    title, 
+    chart_type: chartType,
+    config
+  };
+  
+  // Add dashboard_id if provided
+  if (dashboardId) {
+    requestBody.dashboard_id = dashboardId;
+  }
+  
+  return await callApi(`/charts/${chartId}`, 'PUT', requestBody);
+};
+
+export const deleteChart = async (chartId: string | number): Promise<any> => {
+  console.log(`🗑️ Deleting chart with ID: ${chartId}`);
+  return await callApi(`/charts/${chartId}`, 'DELETE');
+};
+
+// New function to get call records for a specific chart and label
+export const getCallRecordsByChart = async (
+  chartId: string | number,
+  label: string[],
+  page: number = 1,
+  limit: number = 6,
+): Promise<any> => {
+  console.log(`📞 🚀 MAKING API CALL: Fetching call records for chart ${chartId}, label: "${label} and page ${page}"`);
+  console.log(`📞 🌐 FULL URL: ${API_BASE_URL}/call-records/chart/${chartId}?label=${encodeURIComponent(label[0])}&page=${page}&limit=${limit}`);
+  
+  // Construct query parameters
+  const queryParams = new URLSearchParams();
+  label.forEach(l => queryParams.append('label', l));
+  queryParams.append('page', page.toString());
+  queryParams.append('limit', limit.toString());
+  
+  const endpoint = `/call-records/chart/${chartId}?${queryParams}`;
+  console.log(`📞 📡 CALLING ENDPOINT: ${endpoint}`);
+  
+  const result = await callApi(endpoint, 'POST', label );
+  console.log(`📞 ✅ API RESPONSE RECEIVED:`, result);
+  
+  return result;
+};
 
 // Helper function to check if we need to use Supabase fallback
 export const isApiAvailable = async (): Promise<boolean> => {

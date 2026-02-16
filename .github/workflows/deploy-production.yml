@@ -1,0 +1,80 @@
+# Deploy Memo App to AWS EC2
+# Runs on push to main. Uses the host and key you set in GitHub Secrets.
+#
+# Required GitHub Secrets:
+#   EC2_HOST       - EC2 public IP or DNS (e.g. ec2-xx-xx-xx-xx.compute.amazonaws.com)
+#   EC2_USER       - SSH user (usually ubuntu)
+#   EC2_SSH_KEY    - Full private key content (PEM) for SSH
+#   EC2_APP_PATH   - Path where the app runs (e.g. /home/ubuntu/memoapp)
+# Optional: GH_CLONE_TOKEN - GitHub token for private repo clone on EC2 (e.g. Personal Access Token)
+#
+# One-time on EC2: run deploy/bootstrap-ec2.sh as documented in deploy/EC2-SETUP.md
+
+name: Deploy Memo App to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        if: secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != ''
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy and restart on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_APP_PATH: ${{ secrets.EC2_APP_PATH }}
+          GH_REPO: ${{ github.repository }}
+          GH_CLONE_TOKEN: ${{ secrets.GH_CLONE_TOKEN }}
+        run: |
+          APP_PATH="${EC2_APP_PATH:-/home/ubuntu/memoapp}"
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_rsa "${EC2_USER:-ubuntu}@${EC2_HOST}" "APP_PATH='$APP_PATH' GH_REPO='$GH_REPO' GH_CLONE_TOKEN='$GH_CLONE_TOKEN' bash -s" << 'REMOTE'
+            set -e
+            : "${APP_PATH:=/home/ubuntu/memoapp}"
+            sudo mkdir -p "$APP_PATH"
+            sudo chown -R "$USER:$USER" "$APP_PATH"
+            cd "$APP_PATH"
+            if [ -d .git ]; then
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              if [ -n "$GH_REPO" ]; then
+                CLONE_URL="https://github.com/${GH_REPO}.git"
+                [ -n "$GH_CLONE_TOKEN" ] && CLONE_URL="https://${GH_CLONE_TOKEN}@github.com/${GH_REPO}.git"
+                git clone --depth 1 --branch main "$CLONE_URL" .
+              else
+                exit 1
+              fi
+            fi
+            cd memwebapp/backend
+            [ -d .venv ] || python3 -m venv .venv
+            .venv/bin/pip install -q -r requirements.txt
+            [ -f .env ] || cp .env.backup .env 2>/dev/null || true
+            cd "$APP_PATH/memwebapp/frontend"
+            npm ci --omit=dev 2>/dev/null || npm ci
+            VITE_API_URL= npm run build
+            cd "$APP_PATH"
+            if [ -f deploy/nginx-memoapp.conf ]; then
+              sudo cp deploy/nginx-memoapp.conf /etc/nginx/sites-available/memoapp
+              sudo ln -sf /etc/nginx/sites-available/memoapp /etc/nginx/sites-enabled/
+              sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true
+            fi
+            sudo systemctl restart memoapp-backend 2>/dev/null || true
+            sudo systemctl restart memoapp-frontend 2>/dev/null || true
+            echo "Deploy done."
+          REMOTE
+        if: secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != ''

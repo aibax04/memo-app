@@ -1,18 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 type User = {
   id: string;
   email: string;
   name: string;
-  role?: string;
 };
 
 type AuthContextType = {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 };
@@ -37,7 +34,7 @@ const MOCK_USERS = [
 const isTokenExpired = (): boolean => {
   const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
   if (!tokenTimestamp) return true;
-
+  
   const expiryTimeMs = parseInt(tokenTimestamp) + (7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
   return Date.now() > expiryTimeMs;
 };
@@ -51,10 +48,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const storedUser = localStorage.getItem("dashboardUser");
     const accessToken = localStorage.getItem("memoapp_access_token");
-
-    // Check if user is supposedly logged in but token is missing or expired
-    if (storedUser && (!accessToken || isTokenExpired())) {
-      console.log("🔒 Token missing or expired, logging out user");
+    
+    // Check if token has expired
+    if (accessToken && isTokenExpired()) {
+      console.log("🔒 Token has expired, logging out user");
       localStorage.removeItem("memoapp_access_token");
       localStorage.removeItem("memoapp_token_timestamp");
       localStorage.removeItem("memoapp_auth_data");
@@ -64,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       navigate("/login");
       return;
     }
-
+    
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       console.log("🔄 Restoring user from localStorage:", parsedUser.email);
@@ -73,9 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, [navigate]);
 
-  const login = React.useCallback(async (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
-
+    
     // Important: First check if we already have a user in localStorage
     // This would happen if the API login was successful
     const storedUser = localStorage.getItem("dashboardUser");
@@ -88,25 +85,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
     }
-
+    
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
-
+    
     const foundUser = MOCK_USERS.find(
       (user) => user.email === email && user.password === password
     );
-
+    
     if (foundUser) {
       console.log("👤 User authenticated via mock users");
       const { password, ...userWithoutPassword } = foundUser;
-
-      // Assign role based on email or default to 'agent'
-      const role = email.includes('indika.ai') || email.includes('panscience') ? 'admin' : 'agent';
-      const userWithRole = { ...userWithoutPassword, role };
-
-      setUser(userWithRole);
-      localStorage.setItem("dashboardUser", JSON.stringify(userWithRole));
-
+      setUser(userWithoutPassword);
+      localStorage.setItem("dashboardUser", JSON.stringify(userWithoutPassword));
+      
       // Set token timestamp if not already set (for mock users)
       if (!localStorage.getItem('memoapp_token_timestamp')) {
         localStorage.setItem('memoapp_token_timestamp', Date.now().toString());
@@ -116,47 +108,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("❌ Invalid email or password for mock user");
       throw new Error("Invalid email or password");
     }
-
+    
     setIsLoading(false);
-  }, []);
+  };
 
-  const signUp = React.useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      console.log("👤 Creating new account for:", email);
-
-      // In a real app, you'd call your signup API here
-      // For now, we'll just simulate success
-      toast.success("Account created! You can now sign in.");
-    } catch (error: any) {
-      console.error("❌ Sign up error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const logout = React.useCallback(() => {
+  const logout = () => {
     console.log("👋 Logging out user:", user?.email);
     setUser(null);
     localStorage.removeItem("dashboardUser");
     localStorage.removeItem("memoapp_access_token");
     localStorage.removeItem("memoapp_token_timestamp");
     localStorage.removeItem("memoapp_auth_data");
-  }, [user?.email]);
-
-  const authValue = React.useMemo(() => ({
-    user,
-    login,
-    signUp,
-    logout,
-    isLoading
-  }), [user, login, signUp, logout, isLoading]);
+  };
 
   return (
-    <AuthContext.Provider value={authValue}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

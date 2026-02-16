@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Records Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .file-input {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .file-input:hover {
+            background: #5a6fd8;
+        }
+
+        .file-input input[type=file] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .meetings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .meeting-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease;
+        }
+
+        .meeting-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .meeting-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .meeting-card p {
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .meeting-card .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status.processed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.not-processed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .card-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .transcription {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Meeting Records Manager</h1>
+            <p>Create, manage, and process meeting recordings with AI-powered transcription</p>
+        </div>
+
+        <div class="content">
+            <!-- Create Meeting Section -->
+            <div class="section">
+                <h2>➕ Create New Meeting</h2>
+                <form id="createMeetingForm">
+                    <div class="form-group">
+                        <label for="title">Meeting Title *</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="participants">Participants</label>
+                        <input type="text" id="participants" name="participants" placeholder="John, Jane, Mike">
+                    </div>
+                    <div class="form-group">
+                        <label for="audioFile">Audio File (Optional)</label>
+                        <div class="file-input">
+                            <span id="fileLabel">Choose Audio File</span>
+                            <input type="file" id="audioFile" name="audio_file" accept="audio/*">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">Create Meeting</button>
+                </form>
+            </div>
+
+            <!-- Meetings List Section -->
+            <div class="section">
+                <h2>📋 All Meetings</h2>
+                <button onclick="loadMeetings()" class="btn">Refresh Meetings</button>
+                <div id="meetingsList" class="meetings-grid">
+                    <div class="loading">Loading meetings...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Details Modal -->
+    <div id="meetingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Meeting Details</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let meetings = [];
+
+        // File input handling
+        document.getElementById('audioFile').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'Choose Audio File';
+            document.getElementById('fileLabel').textContent = fileName;
+        });
+
+        // Create meeting form
+        document.getElementById('createMeetingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('participants', document.getElementById('participants').value);
+            
+            const audioFile = document.getElementById('audioFile').files[0];
+            if (audioFile) {
+                formData.append('audio_file', audioFile);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/meetings/`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const meeting = await response.json();
+                    showMessage('Meeting created successfully!', 'success');
+                    document.getElementById('createMeetingForm').reset();
+                    document.getElementById('fileLabel').textContent = 'Choose Audio File';
+                    loadMeetings();
+                } else {
+                    const error = await response.text();
+                    showMessage(`Error creating meeting: ${error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        // Load all meetings
+        async function loadMeetings() {
+            try {
+                const response = await fetch(`${API_BASE}/meetings/`);
+                if (response.ok) {
+                    meetings = await response.json();
+                    displayMeetings();
+                } else {
+                    showMessage('Error loading meetings', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Display meetings
+        function displayMeetings() {
+            const container = document.getElementById('meetingsList');
+            
+            if (meetings.length === 0) {
+                container.innerHTML = '<div class="loading">No meetings found</div>';
+                return;
+            }
+
+            container.innerHTML = meetings.map(meeting => `
+                <div class="meeting-card">
+                    <h3>${meeting.title}</h3>
+                    <p><strong>Description:</strong> ${meeting.description || 'No description'}</p>
+                    <p><strong>Participants:</strong> ${meeting.participants || 'Not specified'}</p>
+                    <p><strong>Created:</strong> ${new Date(meeting.created_at).toLocaleDateString()}</p>
+                    <p><strong>Audio File:</strong> ${meeting.audio_filename || 'None'}</p>
+                    <span class="status ${meeting.is_processed ? 'processed' : 'not-processed'}">
+                        ${meeting.is_processed ? 'Processed' : 'Not Processed'}
+                    </span>
+                    <div class="card-actions">
+                        <button onclick="viewMeeting(${meeting.id})" class="btn btn-sm">View Details</button>
+                        <button onclick="deleteMeeting(${meeting.id})" class="btn btn-sm btn-danger">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // View meeting details
+        async function viewMeeting(id) {
+            try {
+                const response = await fetch(`${API_BASE}/meetings/${id}`);
+                if (response.ok) {
+                    const meeting = await response.json();
+                    showMeetingModal(meeting);
+                } else {
+                    showMessage('Error loading meeting details', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show meeting modal
+        function showMeetingModal(meeting) {
+            document.getElementById('modalTitle').textContent = meeting.title;
+            document.getElementById('modalContent').innerHTML = `
+                <p><strong>Description:</strong> ${meeting.description || 'No description'}</p>
+                <p><strong>Participants:</strong> ${meeting.participants || 'Not specified'}</p>
+                <p><strong>Created:</strong> ${new Date(meeting.created_at).toLocaleString()}</p>
+                <p><strong>Updated:</strong> ${new Date(meeting.updated_at).toLocaleString()}</p>
+                <p><strong>Audio File:</strong> ${meeting.audio_filename || 'None'}</p>
+                <p><strong>Status:</strong> 
+                    <span class="status ${meeting.is_processed ? 'processed' : 'not-processed'}">
+                        ${meeting.is_processed ? 'Processed' : 'Not Processed'}
+                    </span>
+                </p>
+                ${meeting.transcription ? `
+                    <h3>Transcription:</h3>
+                    <div class="transcription">${meeting.transcription}</div>
+                ` : ''}
+                ${meeting.summary ? `
+                    <h3>Summary:</h3>
+                    <div class="transcription">${meeting.summary}</div>
+                ` : ''}
+                ${meeting.key_points ? `
+                    <h3>Key Points:</h3>
+                    <div class="transcription">${meeting.key_points}</div>
+                ` : ''}
+            `;
+            document.getElementById('meetingModal').style.display = 'block';
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('meetingModal').style.display = 'none';
+        }
+
+        // Delete meeting
+        async function deleteMeeting(id) {
+            if (!confirm('Are you sure you want to delete this meeting?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/meetings/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showMessage('Meeting deleted successfully!', 'success');
+                    loadMeetings();
+                } else {
+                    showMessage('Error deleting meeting', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            const content = document.querySelector('.content');
+            content.insertBefore(messageDiv, content.firstChild);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('meetingModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Load meetings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMeetings();
+        });
+    </script>
+</body>
+</html> 

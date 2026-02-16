@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memo App Meeting Recorder</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+  <!-- Logo Header -->
+  <div class="logo-header">
+    <img src="icons/logo.png" alt="Memo App">
+  </div>
+
+  <!-- Logout Button (hidden by default) -->
+  <button class="logout-btn hidden" id="logoutBtn" title="Logout">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  </button>
+
+  <!-- Main Content Card -->
+  <div class="main-card">
+    <div class="main-card-inner">
+      <!-- Decorative Background Mask -->
+      <div class="mask-bg" id="maskBgAuth">
+        <img src="icons/mask-group-auth.svg" alt="">
+      </div>
+      <div class="mask-bg hidden" id="maskBgRecord">
+        <img src="icons/mask-group-record.svg" alt="">
+      </div>
+
+      <!-- Title Bar -->
+      <div class="title-bar">
+        <h2>Easy Meeting Recorder</h2>
+        <a href="#" class="help-link" id="helpLink">
+          <img src="icons/help-circle.svg" alt="">
+          See How it Works
+        </a>
+      </div>
+
+      <!-- Login Gate Content -->
+      <div class="relative" id="loginGate">
+        <!-- Status Section -->
+        <div class="status-section">
+          <div class="status-content">
+            <!-- Icon with gradient background -->
+            <div class="icon-container">
+              <img src="icons/gradient-bg.svg" alt="" class="icon-bg">
+              <img src="icons/lock-shield.svg" alt="" class="icon-main">
+            </div>
+
+            <div class="status-text">
+              <p class="status-title">Authentication Required</p>
+              <p class="status-subtitle">
+                Please log in to use the meeting recording features from Memo App.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Login Button -->
+        <div class="btn-container">
+          <button class="btn btn-primary" id="loginBtn">
+            Log In to Memo App
+            <img src="icons/link-square.svg" alt="">
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Content (Hidden by default) -->
+      <div class="relative hidden" id="mainContent">
+        <!-- Pre-Recording State -->
+        <div id="preRecordingState">
+          <!-- Status Section -->
+          <div class="status-section">
+            <div class="status-content">
+              <!-- Icon with gradient background -->
+              <div class="icon-container" id="statusIconContainer">
+                <img src="icons/gradient-bg.svg" alt="" class="icon-bg">
+                <img src="icons/mic-record.svg" alt="" class="icon-main" id="statusIcon">
+              </div>
+
+              <div class="status-text">
+                <p class="status-title" id="statusTitle">Ready to Record</p>
+                <p class="status-subtitle" id="statusSubtitle">
+                  Please ensure that you are on a <strong>Google Meet</strong> or <strong>Microsoft Teams</strong> meeting before starting recording.
+                </p>
+              </div>
+
+              <!-- Platform Badge (hidden by default) -->
+              <div class="platform-badge hidden" id="platformBadge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+                <span id="platformName">Unknown</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Start Recording Button -->
+          <div class="btn-container">
+            <button class="btn btn-primary" id="startBtn">
+              <img src="icons/record-button.svg" alt="">
+              Start Recording
+            </button>
+          </div>
+
+          <!-- Form Fields -->
+          <div class="form-section">
+            <!-- Meeting Title -->
+            <div class="form-group">
+              <label class="form-label">
+                Meeting Title <span class="optional">(Optional)</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="text" id="meetingTitle" placeholder="Enter a meeting title" class="form-input">
+                <div class="input-underline"></div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label class="form-label">
+                Description <span class="optional">(Optional)</span>
+              </label>
+              <div class="input-wrapper">
+                <textarea id="meetingDescription" placeholder="Enter a brief description of the meeting" rows="3" class="form-textarea"></textarea>
+                <div class="input-underline"></div>
+              </div>
+            </div>
+
+            <!-- Template -->
+            <div class="form-group">
+              <label class="form-label">
+                Template <span class="optional">(Optional)</span>
+              </label>
+              <div class="select-wrapper">
+                <div class="select-icon-left">
+                  <img src="icons/clipboard.svg" alt="">
+                </div>
+                <select id="templateSelect" class="form-select">
+                  <option value="">Select a meeting template</option>
+                </select>
+                <div class="select-icon-right">
+                  <img src="icons/arrow-down.svg" alt="">
+                </div>
+                <div class="input-underline"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recording State -->
+        <div id="recordingState" class="hidden">
+          <div class="status-section">
+            <div class="status-content">
+              <div class="icon-container">
+                <div class="icon-bg-red"></div>
+                <div class="icon-main animate-pulse-icon">
+                  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+                    <circle cx="24" cy="24" r="16" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+                    <circle cx="24" cy="24" r="8" fill="#fca5a5"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="status-text">
+                <p class="status-title">Recording in Progress</p>
+                <p class="status-subtitle" style="color: var(--color-text-secondary);">Capturing microphone and tab audio</p>
+                <p class="duration-display" id="duration">00:00</p>
+              </div>
+
+              <div class="platform-badge" id="recordingPlatformBadge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+                <span id="recordingPlatformName">Meeting</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-container">
+            <button class="btn btn-danger" id="stopBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+              </svg>
+              Stop Recording
+            </button>
+          </div>
+        </div>
+
+        <!-- Post-Recording State -->
+        <div id="postRecordingState" class="hidden">
+          <div class="status-section">
+            <div class="status-content">
+              <div class="icon-container">
+                <div class="icon-bg-green"></div>
+                <div class="icon-main">
+                  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+                    <circle cx="24" cy="24" r="16" fill="#10b981" stroke="#059669" stroke-width="2"/>
+                    <path d="M16 24l6 6 12-12" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="status-text">
+                <p class="status-title">Recording Complete!</p>
+                <p class="status-subtitle" style="color: var(--color-text-secondary);">Your recording is ready to upload</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Post Recording Form -->
+          <div class="form-section" style="padding-bottom: 16px;">
+            <div class="form-group">
+              <label class="form-label">Meeting Title</label>
+              <div class="input-wrapper">
+                <input type="text" id="postMeetingTitle" placeholder="Enter meeting title..." class="form-input">
+                <div class="input-underline"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Template <span class="optional">(Optional)</span>
+              </label>
+              <div class="select-wrapper">
+                <div class="select-icon-left">
+                  <img src="icons/clipboard.svg" alt="">
+                </div>
+                <select id="postTemplateSelect" class="form-select">
+                  <option value="">Select a template...</option>
+                </select>
+                <div class="select-icon-right">
+                  <img src="icons/arrow-down.svg" alt="">
+                </div>
+                <div class="input-underline"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Progress Section -->
+          <div class="upload-section hidden" id="uploadSection">
+            <div class="upload-header">
+              <div class="upload-icon" id="uploadIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="upload-info">
+                <h4 id="uploadTitle">Uploading...</h4>
+                <p id="uploadMessage">Please wait</p>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Button Group -->
+          <div class="btn-group">
+            <button class="btn btn-success" id="uploadBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Upload
+            </button>
+            <button class="btn btn-secondary" id="newRecordingBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              New
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

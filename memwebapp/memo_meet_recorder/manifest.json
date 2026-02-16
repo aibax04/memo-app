@@ -1,0 +1,73 @@
+{
+  "manifest_version": 3,
+  "name": "Memo App Meeting Recorder",
+  "version": "2.1.4",
+  "description": "Record Google Meet and Microsoft Teams meetings with dual audio capture (audio playback continues during recording)",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "scripting",
+    "tabCapture",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://teams.microsoft.com/*",
+    "https://*.teams.microsoft.com/*",
+    "https://teams.live.com/*",
+    "https://*.teams.live.com/*",
+    "https://zoom.us/*",
+    "https://*.zoom.us/*",
+    "http://localhost:8000/*",
+    "http://localhost:5173/*",
+    "http://127.0.0.1:8000/*",
+    "http://127.0.0.1:5173/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://meet.google.com/*",
+        "https://teams.microsoft.com/*",
+        "https://*.teams.microsoft.com/*",
+        "https://teams.live.com/*",
+        "https://*.teams.live.com/*",
+        "https://zoom.us/*",
+        "https://*.zoom.us/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*"
+      ],
+      "js": [
+        "localhost-content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Memo App Meeting Recorder",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

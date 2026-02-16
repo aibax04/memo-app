@@ -52,9 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem("dashboardUser");
     const accessToken = localStorage.getItem("memoapp_access_token");
 
-    // Check if token has expired
-    if (accessToken && isTokenExpired()) {
-      console.log("🔒 Token has expired, logging out user");
+    // Check if user is supposedly logged in but token is missing or expired
+    if (storedUser && (!accessToken || isTokenExpired())) {
+      console.log("🔒 Token missing or expired, logging out user");
       localStorage.removeItem("memoapp_access_token");
       localStorage.removeItem("memoapp_token_timestamp");
       localStorage.removeItem("memoapp_auth_data");
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, [navigate]);
 
-  const login = async (email: string, password: string) => {
+  const login = React.useCallback(async (email: string, password: string) => {
     setIsLoading(true);
 
     // Important: First check if we already have a user in localStorage
@@ -118,9 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setIsLoading(false);
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = React.useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       // Simulate API delay
@@ -136,19 +136,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = React.useCallback(() => {
     console.log("👋 Logging out user:", user?.email);
     setUser(null);
     localStorage.removeItem("dashboardUser");
     localStorage.removeItem("memoapp_access_token");
     localStorage.removeItem("memoapp_token_timestamp");
     localStorage.removeItem("memoapp_auth_data");
-  };
+  }, [user?.email]);
+
+  const authValue = React.useMemo(() => ({
+    user,
+    login,
+    signUp,
+    logout,
+    isLoading
+  }), [user, login, signUp, logout, isLoading]);
 
   return (
-    <AuthContext.Provider value={{ user, login, signUp, logout, isLoading }}>
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );

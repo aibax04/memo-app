@@ -110,9 +110,14 @@ export const callApi = async (
       localStorage.removeItem('memoapp_access_token');
       localStorage.removeItem('memoapp_token_timestamp');
       localStorage.removeItem('memoapp_auth_data');
+      localStorage.removeItem('dashboardUser'); // Also clear the user data
       accessToken = null;
-      toast.error("Authentication failed. Please log in again.");
-      window.location.href = '/login'; // Redirect to login
+
+      // Use window.location.pathname to avoid infinite redirect loops
+      if (window.location.pathname !== '/login') {
+        toast.error("Authentication failed. Please log in again.");
+        window.location.href = '/login'; // Redirect to login
+      }
       return { error: "Authentication failed" };
     }
 

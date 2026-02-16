@@ -47,6 +47,12 @@ const MeetingDetail: React.FC = () => {
     useEffect(() => {
         if (!id) { navigate('/meetings'); return; }
         const loadMeeting = async () => {
+            const token = localStorage.getItem('memoapp_access_token');
+            if (!token) {
+                console.log('🚫 No access token found, skipping meeting load');
+                return;
+            }
+
             setIsLoading(true);
             const result = await getMeeting(id);
             if ('error' in result) {

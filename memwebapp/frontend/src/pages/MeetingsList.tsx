@@ -28,6 +28,12 @@ const MeetingsList: React.FC = () => {
     const { user } = useAuth();
 
     const fetchMeetings = useCallback(async (silent = false) => {
+        const token = localStorage.getItem('memoapp_access_token');
+        if (!token) {
+            console.log('🚫 No access token found, skipping meetings fetch');
+            return;
+        }
+
         if (!silent) setIsLoading(true);
         try {
             const result = await getMeetings(currentPage, perPage, statusFilter || undefined, searchQuery || undefined);

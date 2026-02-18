@@ -19,7 +19,10 @@ Environment=NODE_ENV=production
 EnvironmentFile=-/home/ubuntu/memoapp/memwebapp/backend/.env
 ExecStart=/home/ubuntu/memoapp/memwebapp/backend/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8002
 Restart=always
-RestartSec=5
+RestartSec=10
+# Allow backend to fail and retry (e.g. DB not ready)
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Install]
 WantedBy=multi-user.target

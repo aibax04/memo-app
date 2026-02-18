@@ -4,11 +4,11 @@ The workflow **Deploy Memo App to AWS EC2** (`.github/workflows/deploy-productio
 
 ## 1. Add GitHub Secrets
 
-In your GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**. Add:
+Use **Actions** secrets (not Environment variables). In your GitHub repo: **Settings → Secrets and variables → Actions** → **New repository secret**. Add:
 
 | Secret name    | Value | Example |
 |----------------|-------|--------|
-| **EC2_HOST**   | Your EC2 public IP or public DNS | `ec2-3-110-xx-xx.ap-south-1.compute.amazonaws.com` or `3.110.xx.xx` |
+| **EC2_HOST**   | Your EC2 public IP or public DNS | `43.205.135.78` |
 | **EC2_USER**   | SSH user (Ubuntu AMI = `ubuntu`) | `ubuntu` |
 | **EC2_SSH_KEY**| Full contents of your `.pem` private key | Paste entire file (including `-----BEGIN...` and `-----END...`) |
 | **EC2_APP_PATH**| Path on the server where the app will live | `/home/ubuntu/memoapp` |
@@ -25,7 +25,7 @@ SSH into the host and either clone the repo and run the bootstrap script, or cop
 **Option A – Clone repo on EC2 and bootstrap**
 
 ```bash
-ssh -i your-key.pem ubuntu@<YOUR_EC2_HOST>
+ssh -i your-key.pem ubuntu@43.205.135.78
 
 # Clone your repo (replace with your repo URL; use HTTPS or SSH)
 git clone https://github.com/YOUR_ORG/opticall-mobile-backend.git /home/ubuntu/memoapp
@@ -39,16 +39,16 @@ bash deploy/bootstrap-ec2.sh
 
 ```bash
 # From your laptop
-scp -i your-key.pem -r deploy ubuntu@<YOUR_EC2_HOST>:/tmp/
-scp -i your-key.pem -r memwebapp ubuntu@<YOUR_EC2_HOST>:/tmp/
-ssh -i your-key.pem ubuntu@<YOUR_EC2_HOST> 'mkdir -p /home/ubuntu/memoapp && mv /tmp/deploy /tmp/memwebapp /home/ubuntu/memoapp/ && cd /home/ubuntu/memoapp && bash deploy/bootstrap-ec2.sh'
+scp -i your-key.pem -r deploy ubuntu@43.205.135.78:/tmp/
+scp -i your-key.pem -r memwebapp ubuntu@43.205.135.78:/tmp/
+ssh -i your-key.pem ubuntu@43.205.135.78 'mkdir -p /home/ubuntu/memoapp && mv /tmp/deploy /tmp/memwebapp /home/ubuntu/memoapp/ && cd /home/ubuntu/memoapp && bash deploy/bootstrap-ec2.sh'
 ```
 
 **Then on the server, set production env:**
 
 ```bash
 nano /home/ubuntu/memoapp/memwebapp/backend/.env
-# Set at least: PORT=8002, NODE_ENV=production, DATABASE_URL=..., JWT_SECRET=..., FRONTEND_URL=http://<EC2_PUBLIC_IP>
+# Set at least: PORT=8002, NODE_ENV=production, DATABASE_URL=..., JWT_SECRET=..., FRONTEND_URL=http://43.205.135.78
 sudo systemctl restart memoapp-backend
 ```
 
@@ -77,8 +77,8 @@ From your machine:
 
 ```bash
 # Replace with your EC2 IP or domain
-curl http://<YOUR_EC2_HOST>/health
-curl -I http://<YOUR_EC2_HOST>/
+curl http://43.205.135.78/health
+curl -I http://43.205.135.78/
 ```
 
 On the server:

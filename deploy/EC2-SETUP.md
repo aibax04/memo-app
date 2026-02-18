@@ -4,9 +4,9 @@ Frontend is served on **port 5173** (or via nginx proxy). Backend runs on **port
 
 ## Production checklist (must-do)
 
-1. **Backend `.env` on EC2**: Set `FRONTEND_URL` (and `DASHBOARD_BASE_URL`) to the **exact URL** users use to open the app, e.g. `http://YOUR_EC2_PUBLIC_IP` or `https://your-domain.com`. This is required for CORS; otherwise the browser will block API requests.
+1. **Backend `.env` on EC2**: Set `FRONTEND_URL` and `DASHBOARD_BASE_URL` to `http://43.205.135.78`. Required for CORS.
 2. **Security group**: Allow inbound **80** (and **443** if using HTTPS). Do not open **5173** or **8002** to the internet.
-3. After deploy: `curl http://YOUR_EC2_IP/health` and `curl -I http://YOUR_EC2_IP/` should succeed.
+3. **Ports**: Nginx **80**, Backend **8002**, Frontend **5173**. After deploy: `curl http://43.205.135.78/health` and `curl -I http://43.205.135.78/` should succeed.
 
 ## Architecture
 

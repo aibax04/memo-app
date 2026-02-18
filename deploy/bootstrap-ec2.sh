@@ -33,7 +33,9 @@ cd "$APP_PATH/memwebapp/backend"
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 [ -f .env ] || cp .env.backup .env 2>/dev/null || true
-echo "Backend ready (port 8002). Edit memwebapp/backend/.env (PORT=8002, DATABASE_URL, JWT_SECRET, FRONTEND_URL)."
+# Ensure PORT and FRONTEND_URL for production
+grep -q "^PORT=" .env 2>/dev/null || echo "PORT=8002" >> .env
+echo "Backend ready (port 8002). Edit memwebapp/backend/.env (DATABASE_URL, JWT_SECRET, FRONTEND_URL=http://YOUR_EC2_IP)."
 
 # Frontend
 cd "$APP_PATH/memwebapp/frontend"

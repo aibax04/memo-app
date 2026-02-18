@@ -2,7 +2,7 @@
 # Runs on push to main. Uses the host and key you set in GitHub Secrets.
 #
 # Required GitHub Secrets:
-#   EC2_HOST       - EC2 public IP or DNS (e.g. ec2-xx-xx-xx-xx.compute.amazonaws.com)
+#   EC2_HOST       - EC2 public IP (e.g. 43.205.135.78)
 #   EC2_USER       - SSH user (usually ubuntu)
 #   EC2_SSH_KEY    - Full private key content (PEM) for SSH
 #   EC2_APP_PATH   - Path where the app runs (e.g. /home/ubuntu/memoapp)

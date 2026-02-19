@@ -73,14 +73,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     
-    // The AuthContext's login function should handle the API call internally.
-    // The Login component should only call this `login` method.
-    // This block is removed as the API login will be handled below, and
-    // the `useEffect` already handles restoring user from localStorage and token expiry.
-    
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
-    
+
+    // In a real application, this would involve an API call to your backend.
+    // For now, we'll use mock users as a fallback.
+    // Example of how an API call might look (assuming `loginUser` from api.ts):
+    // try {
+    //   const apiResult = await loginUser(email, password);
+    //   if (apiResult.access_token) {
+    //     const userProfile = await callApi('/users/me', 'GET'); // Fetch user profile
+    //     if (userProfile && !userProfile.error) {
+    //       setUser(userProfile);
+    //       localStorage.setItem("dashboardUser", JSON.stringify(userProfile));
+    //       console.log("👤 User authenticated via API");
+    //       setIsLoading(false);
+    //       return;
+    //     }
+    //   }
+    // } catch (apiError) {
+    //   console.error("❌ API login failed:", apiError);
+    //   // Fallback to mock users if API fails or is unavailable
+    // }
+
     const foundUser = MOCK_USERS.find(
       (user) => user.email === email && user.password === password
     );

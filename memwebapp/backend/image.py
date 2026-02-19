@@ -3,6 +3,12 @@ import re
 from collections import Counter
 
 def extract_person_name(image_url):
+import os
+from serpapi import GoogleSearch
+import re
+from collections import Counter
+
+def extract_person_name(image_url):
     params = {
         "engine": "google_reverse_image",
         "image_url": image_url,

@@ -6,7 +6,7 @@ def extract_person_name(image_url):
     params = {
         "engine": "google_reverse_image",
         "image_url": image_url,
-        "api_key": "b1f65de410c043698a53da9416c6c656f8218386326dcf10dfc542da09774804"
+        "api_key": os.getenv("SERPAPI_API_KEY") # Load from environment variable
     }
     
     search = GoogleSearch(params)

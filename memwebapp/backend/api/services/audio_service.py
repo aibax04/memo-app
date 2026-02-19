@@ -58,6 +58,10 @@ class AudioProcessor:
                 # Existing logic for getting template
             finally:
                 db.close()
+            try:
+                # Existing logic for getting template
+            finally:
+                db.close()
             template = None
             
             # Try to get template by UUID first, then by title for backward compatibility

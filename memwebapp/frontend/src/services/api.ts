@@ -289,7 +289,7 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
           });
           console.log(`✅ Fetched ${chartsResponse.length} charts for dashboard ${dashboardId}`);
         } else {
-          console.error("❌ Error fetching charts:", chartsResponse.error || "Unknown error");
+          console.error("❌ Error fetching charts:", chartsAPiResponse.error || "Unknown error");
           // Initialize with empty array if chart fetch fails
           response.charts = [];
         }

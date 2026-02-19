@@ -457,15 +457,15 @@ export const getCallRecordsByChart = async (
   console.log(`📞 🚀 MAKING API CALL: Fetching call records for chart ${chartId}, label: "${label} and page ${page}"`);
   console.log(`📞 🌐 FULL URL: ${API_BASE_URL}/call-records/chart/${chartId}?label=${encodeURIComponent(label[0])}&page=${page}&limit=${limit}`);
   
-  // Construct query parameters
+  // Construct query parameters for pagination
   const queryParams = new URLSearchParams();
-  label.forEach(l => queryParams.append('label', l));
   queryParams.append('page', page.toString());
   queryParams.append('limit', limit.toString());
   
   const endpoint = `/call-records/chart/${chartId}?${queryParams}`;
   console.log(`📞 📡 CALLING ENDPOINT: ${endpoint}`);
   
+  // Send labels in the POST body as per backend expectation
   const result = await callApi(endpoint, 'POST', { labels: label } );
   console.log(`📞 ✅ API RESPONSE RECEIVED:`, result);
   

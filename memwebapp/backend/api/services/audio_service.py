@@ -238,7 +238,6 @@ Only return the pure JSON array inside triple backticks and nothing else."""
             
             # Look for name introductions
             for pattern in name_patterns:
-                import re
                 matches = re.findall(pattern, text)
                 for name in matches:
                     if name and len(name) > 1:  # Valid name

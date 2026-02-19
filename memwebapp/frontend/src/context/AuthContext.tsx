@@ -73,18 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     
-    // Important: First check if we already have a user in localStorage
-    // This would happen if the API login was successful
-    const storedUser = localStorage.getItem("dashboardUser");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      if (parsedUser.email === email) {
-        console.log("👤 User already authenticated via API, skipping Supabase authentication");
-        setUser(parsedUser);
-        setIsLoading(false);
-        return;
-      }
-    }
+    // The AuthContext's login function should handle the API call internally.
+    // The Login component should only call this `login` method.
+    // This block is removed as the API login will be handled below, and
+    // the `useEffect` already handles restoring user from localStorage and token expiry.
     
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));

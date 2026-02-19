@@ -91,10 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userWithoutPassword);
       localStorage.setItem("dashboardUser", JSON.stringify(userWithoutPassword));
       
-      // Set token timestamp if not already set (for mock users)
+      // Set token timestamp and a dummy access token for mock users
       if (!localStorage.getItem('memoapp_token_timestamp')) {
         localStorage.setItem('memoapp_token_timestamp', Date.now().toString());
-        console.log("⏰ Setting token timestamp for 7-day expiry");
+        localStorage.setItem('memoapp_access_token', 'mock_access_token_for_api_fallback'); // Dummy token for API calls
+        console.log("⏰ Setting token timestamp and dummy access token for 7-day expiry");
       }
     } else {
       console.error("❌ Invalid email or password for mock user");

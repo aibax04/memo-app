@@ -156,6 +156,8 @@ Return the output strictly as a JSON array of objects using the below format:
 ]
 ```
 Only return the pure JSON array inside triple backticks and nothing else."""
+        finally:
+            db.close()
     
     def _get_summary_prompt(self, template_id: str = None) -> str:
         """Get template-specific summary prompt from database"""

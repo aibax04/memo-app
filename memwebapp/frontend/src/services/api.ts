@@ -466,7 +466,7 @@ export const getCallRecordsByChart = async (
   const endpoint = `/call-records/chart/${chartId}?${queryParams}`;
   console.log(`📞 📡 CALLING ENDPOINT: ${endpoint}`);
   
-  const result = await callApi(endpoint, 'POST', label );
+  const result = await callApi(endpoint, 'POST', { labels: label } );
   console.log(`📞 ✅ API RESPONSE RECEIVED:`, result);
   
   return result;

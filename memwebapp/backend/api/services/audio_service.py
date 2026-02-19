@@ -55,8 +55,6 @@ class AudioProcessor:
             # Get database session
             db = next(get_db())
             template = None
-            try:
-            
             # Try to get template by UUID first, then by title for backward compatibility
             if template_id:
                 try:

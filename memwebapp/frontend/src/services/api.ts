@@ -261,7 +261,7 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
         console.log("Charts not found in response, fetching charts separately");
         const chartsResponse = chartsAPiResponse.charts;
         const totalPages = chartsAPiResponse.totalPages;
-        if (!chartsResponse.error && Array.isArray(chartsResponse)) {
+        if (!chartsAPiResponse.error && Array.isArray(chartsResponse)) {
           response.charts = chartsResponse.map(chart => {
             // Process chart data to match the expected format in frontend
             let chartData = {};

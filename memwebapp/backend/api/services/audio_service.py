@@ -190,6 +190,8 @@ Only return the pure JSON array inside triple backticks and nothing else."""
             logger.error(f"Error getting summary prompt from database: {e}")
             # Fallback to hardcoded default
             return "This is the transcription of an audio recording. Please generate a concise summary covering the main topics discussed, key decisions made, important points raised, action items or next steps, and overall outcomes. Write it as a flowing paragraph without headings or bullet points."
+        finally:
+            db.close()
     
     def _extract_speaker_names_from_transcription(self, transcription: List[dict]) -> dict:
         """

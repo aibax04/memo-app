@@ -54,6 +54,10 @@ class AudioProcessor:
         try:
             # Get database session
             db = next(get_db())
+            try:
+                # Existing logic for getting template
+            finally:
+                db.close()
             template = None
             
             # Try to get template by UUID first, then by title for backward compatibility

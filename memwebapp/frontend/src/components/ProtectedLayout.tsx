@@ -11,7 +11,7 @@ import { toast } from "sonner";
 const isTokenExpired = (): boolean => {
   const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
   if (!tokenTimestamp) return true;
-  
+
   const expiryTimeMs = parseInt(tokenTimestamp) + (7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
   return Date.now() > expiryTimeMs;
 };
@@ -50,7 +50,7 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
   }
 
   const canGoBack = location.pathname !== "/";
-  
+
   const handleGoBack = () => {
     navigate(-1);
   };
@@ -61,13 +61,15 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
       {/* <div className="w-full z-20 relative">
         <NavBar />
       </div> */}
-      
+
       {/* Add spacing below navbar */}
-      <div className="pt-4"></div>
-      
+      <div className="pt-6"></div>
+
       {/* Main content area that includes the sidebar and page content */}
-      <div className="flex-1 flex">
-        {children || <Outlet />}
+      <div className="flex-1 flex w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pb-10">
+        <div className="w-full">
+          {children || <Outlet />}
+        </div>
       </div>
     </div>
   );

@@ -21,8 +21,10 @@ logger = logging.getLogger(__name__)
 class FlatMeetingAnalytics:
     def __init__(self):
         """Initialize the analytics extractor with Gemini configuration"""
+        self.model = None
         if not settings.GEMINI_KEY:
-            raise ValueError("GEMINI_KEY is required for analytics extraction")
+            logger.warning("GEMINI_KEY not found. Analytics extraction will not be available.")
+            return
         
         genai.configure(api_key=settings.GEMINI_KEY)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
@@ -412,4 +414,8 @@ Provide only the JSON response, no additional text or explanations.
             raise ValueError(f"Failed to parse Gemini response: {e}")
 
 # Global instance - ready to use
-flat_analytics = FlatMeetingAnalytics()
+try:
+    flat_analytics = FlatMeetingAnalytics()
+except Exception as e:
+    logger.warning(f"Flat Meeting Analytics not available: {e}")
+    flat_analytics = None

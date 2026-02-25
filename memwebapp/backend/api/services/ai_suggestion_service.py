@@ -35,10 +35,9 @@ class AISuggestionService:
                 logger.info("AI Suggestion Service initialized with Gemini")
             except Exception as e:
                 logger.error(f"Could not initialize Gemini client: {e}")
-                raise Exception("Gemini API initialization failed. Please check API key and configuration.")
+                logger.warning("AI suggestions will not be available.")
         else:
-            logger.error("GEMINI_KEY not found in settings.")
-            raise Exception("Gemini API key not configured. AI suggestions cannot work.")
+            logger.warning("GEMINI_KEY not found in settings. AI suggestions will not be available.")
     
     def _extract_audio_sample(self, audio_path: str, duration_seconds: int = 60) -> str:
         """
@@ -449,5 +448,9 @@ Return ONLY valid JSON, nothing else."""
         logger.error(error_msg)
         raise Exception(error_msg)
 
-# Create singleton instance
-ai_suggestion_service = AISuggestionService()
+# Create singleton instance (graceful - don't crash app if key missing)
+try:
+    ai_suggestion_service = AISuggestionService()
+except Exception as e:
+    logger.warning(f"AI Suggestion Service not available: {e}")
+    ai_suggestion_service = None

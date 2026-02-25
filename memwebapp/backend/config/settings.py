@@ -81,6 +81,10 @@ class Settings:
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
             "http://127.0.0.1:8000",
+            "https://ext.makememo.ai",
+            "http://ext.makememo.ai",
+            "http://192.168.88.15",
+            "http://43.205.135.78",
             "memoapp://auth/callback",
         ]
         

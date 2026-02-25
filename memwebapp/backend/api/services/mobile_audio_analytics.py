@@ -21,8 +21,10 @@ logger = logging.getLogger(__name__)
 class MobileAudioAnalytics:
     def __init__(self):
         """Initialize the mobile audio analytics extractor with Gemini configuration"""
+        self.model = None
         if not settings.GEMINI_KEY:
-            raise ValueError("GEMINI_KEY is required for analytics extraction")
+            logger.warning("GEMINI_KEY not found. Mobile audio analytics will not be available.")
+            return
         
         genai.configure(api_key=settings.GEMINI_KEY)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
@@ -401,5 +403,9 @@ Provide only the JSON response, no additional text or explanations.
             raise ValueError(f"Failed to parse Gemini response: {e}")
 
 # Global instance - ready to use
-mobile_audio_analytics = MobileAudioAnalytics()
+try:
+    mobile_audio_analytics = MobileAudioAnalytics()
+except Exception as e:
+    logger.warning(f"Mobile Audio Analytics not available: {e}")
+    mobile_audio_analytics = None
 

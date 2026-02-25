@@ -22,92 +22,85 @@ const Login: React.FC = () => {
 
     try {
       console.log("🔑 Attempting login with:", { email });
-      
-      // Try API login first
+
       const apiResult = await loginUser(email, password);
-      
+
       if (apiResult.access_token) {
-        console.log("✅ API login successful with token:", apiResult.access_token.substring(0, 10) + "...");
-        
-        // Store the user in local storage as expected by other parts of the app
-        // This avoids the need to use Supabase login at all
+        console.log("✅ API login successful");
+
         const apiUser = {
-          id: email, // Use email as ID for now
+          id: email,
           email: email,
-          name: email.split('@')[0], // Use part before @ as name
+          name: email.split('@')[0],
         };
-        
+
         localStorage.setItem("dashboardUser", JSON.stringify(apiUser));
-        
-        // Still call the login function to update app state, but don't let it throw errors
+
         try {
-          // We're passing email and password but we don't expect this to validate
-          // since we've already set the user in localStorage
           await login(email, password);
         } catch (loginErr) {
-          console.log("Supabase login attempt failed, but API login successful. Proceeding with API auth.");
+          console.log("Supabase login fallback check");
         }
-        
-        toast.success("Login successful!");
-        navigate("/");
+
+        toast.success("Welcome back!");
+        navigate("/dashboard");
       } else {
-        console.log("API login failed, falling back to Supabase", apiResult.error);
-        // Fallback to Supabase login
         await login(email, password);
-        toast.success("Login successful!");
-        navigate("/");
+        toast.success("Welcome back!");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("❌ Login error:", error);
-      toast.error(error.message || "Login failed");
+      toast.error(error.message || "Invalid credentials");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-col space-y-6 w-full max-w-md">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold tracking-tighter bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-          Memo App
-        </h1>
-        <p className="text-muted-foreground">
-          Welcome back! Please sign in to continue.
-        </p>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h1>
+        <p className="text-slate-400 mt-2">Sign in to your account</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium">
-            Email
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2 group">
+          <Label htmlFor="email" className="text-sm font-semibold text-slate-300 ml-1 group-focus-within:text-blue-400 transition-colors">
+            Email Address
           </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors z-10" />
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="name@company.com"
+              className="bg-[#1C2128] border-slate-700 text-white placeholder:text-slate-600 h-12 rounded-xl pl-12 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10"
               required
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium">
-            Password
-          </Label>
+        <div className="space-y-2 group">
+          <div className="flex justify-between items-center ml-1">
+            <Label htmlFor="password" className="text-sm font-semibold text-slate-300 group-focus-within:text-blue-400 transition-colors">
+              Password
+            </Label>
+            <Link to="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              Forgot?
+            </Link>
+          </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors z-10" />
             <Input
               id="password"
               type="password"
-              placeholder="Enter your password"
+              placeholder="••••••••"
+              className="bg-[#1C2128] border-slate-700 text-white placeholder:text-slate-600 h-12 rounded-xl pl-12 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10"
               required
             />
           </div>
@@ -115,24 +108,24 @@ const Login: React.FC = () => {
 
         <Button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] mt-4"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
             <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2" />
-              <span>Signing in...</span>
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+              <span>Verifying...</span>
             </div>
           ) : (
-            "Sign In"
+            "Secure Sign In"
           )}
         </Button>
       </form>
 
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-blue-600 hover:underline font-medium">
+      <div className="mt-8 text-center">
+        <p className="text-slate-400 text-sm">
+          New to Memo App?{" "}
+          <Link to="/signup" className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors">
             Create an account
           </Link>
         </p>

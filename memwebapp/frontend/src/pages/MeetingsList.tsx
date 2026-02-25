@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity } from 'lucide-react';
+import { Search, Calendar, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getMeetings, deleteMeeting, formatMeetingDate, formatDuration, type Meeting } from '@/services/meetingApi';
@@ -25,7 +25,12 @@ const MeetingsList: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [perPage] = useState(12);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+
+    const handleLogout = () => {
+        logout();
+        toast.success("Logged out successfully");
+    };
 
     const fetchMeetings = useCallback(async (silent = false) => {
         const token = localStorage.getItem('memoapp_access_token');
@@ -124,6 +129,13 @@ const MeetingsList: React.FC = () => {
                         <h1 className="text-5xl font-light text-slate-900 tracking-tight leading-none">
                             {getGreeting()}, <span className="font-semibold text-[#1B2BB8]">{user?.name || 'Agent'}</span>
                         </h1>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-red-500 w-fit transition-colors group"
+                        >
+                            <LogOut className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                            <span>Sign Out</span>
+                        </button>
                     </div>
                 </div>
 

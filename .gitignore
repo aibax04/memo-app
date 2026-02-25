@@ -1,9 +1,66 @@
-# Local npm cache (used by run_local.sh to avoid EACCES on ~/.npm)
+# ========================================== #
+# Node / Frontend Dependencies & Build       #
+# ========================================== #
+node_modules/
+dist/
+dist-ssr/
+build/
 .npm-cache/
 
-# Sensitive / generated (do not push)
+# ========================================== #
+# Python / Backend Dependencies & Build      #
+# ========================================== #
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+htmlcov/
+.coverage
+.tox/
+
+# ========================================== #
+# Environments & Secrets                     #
+# ========================================== #
+.env
+.env.*
+!.env.example
 *.pem
+credentials.json
+client_secret.json
+
+# ========================================== #
+# IDE & Editor files                         #
+# ========================================== #
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
+Thumbs.db
+
+# ========================================== #
+# Logs & Databases & Media                   #
+# ========================================== #
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.sqlite
+*.sqlite3
+*.db
+*.dble
+
+# ========================================== #
+# Memo App Specific                          #
+# ========================================== #
 **/temp_audio/
 **/temp_error.txt
 memwebapp/frontend/.vite/
+memwebapp/backend/temp_audio/
+memwebapp/backend/uploads/

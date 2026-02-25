@@ -9,6 +9,7 @@ import MeetingDetail from './pages/MeetingDetail';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import Home from './pages/Home';
 import AuthLayout from './components/AuthLayout';
 import ProtectedLayout from './components/ProtectedLayout';
 
@@ -19,6 +20,8 @@ const App = () => {
         <Toaster position="top-center" />
         <div className="min-h-screen bg-[#F8FAFC]">
           <Routes>
+            <Route path="/" element={<Home />} />
+
             {/* Auth Routes */}
             <Route path="/login" element={
               <AuthLayout>
@@ -33,7 +36,7 @@ const App = () => {
 
             {/* Protected Routes */}
             <Route element={<ProtectedLayout />}>
-              <Route path="/" element={<MeetingsList />} />
+              <Route path="/dashboard" element={<MeetingsList />} />
               <Route path="/meetings" element={<MeetingsList />} />
               <Route path="/meetings/:id" element={<MeetingDetail />} />
             </Route>

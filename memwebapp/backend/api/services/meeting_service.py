@@ -748,8 +748,9 @@ def finalize_meeting_recording(db: Session, meeting_id: UUID) -> Optional[Meetin
         except Exception as e:
             logger.warning(f"Failed to suggest description: {e}")
 
-    # Suggest title if missing or default
-    if not meeting.title or meeting.title.strip() == "" or meeting.title.lower() == "untitled meeting":
+    # Suggest title if missing, default, or automated by extension
+    title_lower = meeting.title.lower() if meeting.title else ""
+    if not meeting.title or title_lower.strip() == "" or title_lower == "untitled meeting" or "google meet:" in title_lower or "microsoft teams:" in title_lower or "teams:" in title_lower or "zoom:" in title_lower:
         try:
             logger.info("🤖 Attempting AI title suggestion...")
             suggested_title = ai_suggestion_service.suggest_meeting_title(final_audio_path)

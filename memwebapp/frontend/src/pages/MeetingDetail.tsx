@@ -253,16 +253,16 @@ const MeetingDetail: React.FC = () => {
             {/* Sticky Player */}
             {audioUrl && (
                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-[800px] px-6">
-                    <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 shadow-2xl flex items-center gap-6 text-white ring-1 ring-white/5">
+                    <div className="bg-white/95 backdrop-blur-xl border border-slate-200 rounded-[2rem] p-4 shadow-2xl flex items-center gap-6 text-slate-900 ring-1 ring-slate-100">
                         <button
                             onClick={togglePlay}
-                            className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
+                            className="w-12 h-12 rounded-full bg-[#1B2BB8] hover:bg-blue-800 flex items-center justify-center shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
                         >
-                            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                            {isPlaying ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 ml-0.5 text-white" />}
                         </button>
 
                         <div className="flex-1 min-w-0">
-                            <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-widest">
                                 <span>{formatTimestamp(currentTime)}</span>
                                 <span className="text-slate-500">{formatTimestamp(duration)}</span>
                             </div>
@@ -406,20 +406,61 @@ const SummaryView = ({ meeting }: { meeting: Meeting }) => (
                 <h3 className="text-xl font-bold text-slate-800">Briefing</h3>
             </div>
             <div className="text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
-                {meeting.summary || 'Summary not generated for this session.'}
+                {(meeting.summary || 'Summary not generated for this session.').replace(/\*/g, '')}
             </div>
         </div>
 
         {meeting.key_points && (
             <div>
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-amber-50 rounded-xl">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2.5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100/80 shadow-sm">
                         <Lightbulb className="h-5 w-5 text-amber-600" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800">Key Intelligence Points</h3>
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-800">Key Intelligence Points</h3>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">Extracted insights from the conversation</p>
+                    </div>
                 </div>
-                <div className="text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
-                    {meeting.key_points}
+                <div className="bg-gradient-to-br from-slate-50/80 to-amber-50/30 rounded-2xl border border-slate-200/60 p-6 space-y-3">
+                    {meeting.key_points.split('\n').filter((line: string) => line.trim()).map((line: string, idx: number) => {
+                        const trimmed = line.trim();
+                        // Detect section headers (lines ending with ":" or starting with "##" or all-caps short lines)
+                        const isHeader = /^#{1,3}\s/.test(trimmed) ||
+                            (/^[A-Z][^.]*:$/.test(trimmed) && trimmed.length < 80) ||
+                            (/^\*\*.*\*\*:?$/.test(trimmed));
+                        // Clean markdown bold markers
+                        const cleanText = trimmed
+                            .replace(/^#{1,3}\s+/, '')
+                            .replace(/^\*\*(.+?)\*\*:?$/, '$1')
+                            .replace(/^[-•*]\s+/, '')
+                            .replace(/^\d+[.)]\s+/, '')
+                            .replace(/\*/g, '');
+
+                        if (isHeader) {
+                            return (
+                                <div key={idx} className={`flex items-center gap-3 ${idx > 0 ? 'pt-4 mt-2 border-t border-slate-200/60' : ''}`}>
+                                    <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-400 shrink-0" />
+                                    <h4 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">{cleanText.replace(/:$/, '')}</h4>
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div
+                                key={idx}
+                                className="flex gap-3.5 items-start bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-100/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-amber-200/60 transition-all duration-300 group"
+                            >
+                                <div className="mt-0.5 shrink-0">
+                                    <div className="w-6 h-6 rounded-lg bg-amber-100/80 border border-amber-200/60 flex items-center justify-center group-hover:bg-amber-200/80 transition-colors">
+                                        <ChevronRight className="h-3.5 w-3.5 text-amber-600" />
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-700 leading-relaxed font-medium flex-1">
+                                    {cleanText}
+                                </p>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         )}
@@ -454,8 +495,8 @@ const AnalyticsView = ({ meeting }: any) => {
     return (
         <div className="space-y-12">
             {/* Sentiment Header */}
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
+            <div className="bg-white rounded-[2.5rem] p-8 text-slate-900 relative overflow-hidden border border-slate-200 shadow-sm">
+                <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-400">
                     <Brain className="h-32 w-32" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -580,8 +621,8 @@ const SidebarContent = ({ meeting }: { meeting: Meeting }) => {
     return (
         <div className="flex flex-col gap-6">
             {/* Audio Insights - Standardized Alignment */}
-            <div className="bg-slate-900 rounded-3xl p-6 shadow-xl text-white overflow-hidden relative border border-white/5">
-                <div className="absolute top-0 right-0 p-4 opacity-5">
+            <div className="bg-white rounded-3xl p-6 shadow-sm text-slate-900 overflow-hidden relative border border-slate-200">
+                <div className="absolute top-0 right-0 p-4 opacity-5 text-slate-400">
                     <Waves className="h-24 w-24" />
                 </div>
                 <div className="relative z-10">

@@ -41,20 +41,20 @@ const SignUp: React.FC = () => {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Join Memo App</h1>
-        <p className="text-slate-400 mt-2">Start capturing your meetings smarter</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Join Memo App</h1>
+        <p className="text-slate-600 mt-2">Start capturing your meetings smarter</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2 group">
-          <Label htmlFor="name" className="text-sm font-semibold text-slate-300 ml-1 group-focus-within:text-blue-400 transition-colors">
+          <Label htmlFor="name" className="text-sm font-semibold text-slate-700 ml-1 group-focus-within:text-[#1B2BB8] transition-colors">
             Full Name
           </Label>
           <div className="relative">
             <Input
               id="name"
               placeholder="Elon Musk"
-              className="bg-[#1C2128] border-slate-700 text-white placeholder:text-slate-600 h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-[#1B2BB8]/20 focus:border-[#1B2BB8] transition-all shadow-sm"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -63,7 +63,7 @@ const SignUp: React.FC = () => {
         </div>
 
         <div className="space-y-2 group">
-          <Label htmlFor="email" className="text-sm font-semibold text-slate-300 ml-1 group-focus-within:text-blue-400 transition-colors">
+          <Label htmlFor="email" className="text-sm font-semibold text-slate-700 ml-1 group-focus-within:text-[#1B2BB8] transition-colors">
             Email Address
           </Label>
           <div className="relative">
@@ -71,7 +71,7 @@ const SignUp: React.FC = () => {
               id="email"
               type="email"
               placeholder="name@company.com"
-              className="bg-[#1C2128] border-slate-700 text-white placeholder:text-slate-600 h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-[#1B2BB8]/20 focus:border-[#1B2BB8] transition-all shadow-sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -80,7 +80,7 @@ const SignUp: React.FC = () => {
         </div>
 
         <div className="space-y-2 group">
-          <Label htmlFor="password" className="text-sm font-semibold text-slate-300 ml-1 group-focus-within:text-blue-400 transition-colors">
+          <Label htmlFor="password" className="text-sm font-semibold text-slate-700 ml-1 group-focus-within:text-[#1B2BB8] transition-colors">
             Password
           </Label>
           <div className="relative">
@@ -88,7 +88,7 @@ const SignUp: React.FC = () => {
               id="password"
               type="password"
               placeholder="••••••••"
-              className="bg-[#1C2128] border-slate-700 text-white placeholder:text-slate-600 h-12 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-[#1B2BB8]/20 focus:border-[#1B2BB8] transition-all shadow-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -99,7 +99,7 @@ const SignUp: React.FC = () => {
 
         <Button
           type="submit"
-          className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] mt-4"
+          className="w-full h-12 bg-[#1B2BB8] hover:bg-blue-800 text-white font-bold rounded-xl shadow-[0_4px_14px_0_rgba(27,43,184,0.39)] transition-all active:scale-[0.98] mt-4"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
@@ -114,17 +114,17 @@ const SignUp: React.FC = () => {
       </form>
 
       <div className="mt-8 text-center">
-        <p className="text-slate-400 text-sm">
+        <p className="text-slate-600 text-sm">
           Already have an account?{" "}
-          <Link to="/login" className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors">
+          <Link to="/login" className="text-[#1B2BB8] font-bold hover:text-blue-800 hover:underline transition-colors">
             Sign in
           </Link>
         </p>
       </div>
 
-      <div className="mt-8 pt-6 border-t border-slate-800">
+      <div className="mt-8 pt-6 border-t border-slate-200">
         <p className="text-[10px] text-slate-500 text-center leading-relaxed">
-          By signing up, you agree to our <span className="text-slate-400 cursor-pointer hover:underline">Terms of Service</span> and <span className="text-slate-400 cursor-pointer hover:underline">Privacy Policy</span>.
+          By signing up, you agree to our <span className="text-[#1B2BB8] font-medium cursor-pointer hover:underline">Terms of Service</span> and <span className="text-[#1B2BB8] font-medium cursor-pointer hover:underline">Privacy Policy</span>.
         </p>
       </div>
     </div>

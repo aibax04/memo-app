@@ -19,7 +19,7 @@ const App = () => {
     <Router>
       <AuthProvider>
         <Toaster position="top-center" />
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="min-h-screen bg-[#F3F3F3]">
           <Routes>
             <Route path="/" element={<Home />} />
 

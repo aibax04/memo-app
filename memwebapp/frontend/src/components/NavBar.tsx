@@ -12,13 +12,13 @@ const NavBar: React.FC = () => {
 
   const handleLogout = async () => {
     console.log("🔒 Logging out user");
-    
+
     // Log out from API first
     apiLogout();
-    
+
     // Then log out from Supabase
     await logout();
-    
+
     toast.success("Logged out successfully");
   };
 
@@ -27,14 +27,11 @@ const NavBar: React.FC = () => {
       <div className="container flex items-center justify-between h-16 mx-auto px-4">
         <div className="flex items-center">
           <Link to="/" className="flex items-center gap-3">
-            <img 
-              src="/lovable-uploads/94c34077-f209-4a36-8764-5862b72ce8e2.png" 
-              alt="Memo App Logo" 
-              className="h-8 w-8"
+            <img
+              src="/lovable-uploads/image.png"
+              alt="Memo App Logo"
+              className="h-14 w-auto object-contain"
             />
-            <span className="text-2xl font-bold text-blue-600">
-              Memo App
-            </span>
           </Link>
         </div>
 

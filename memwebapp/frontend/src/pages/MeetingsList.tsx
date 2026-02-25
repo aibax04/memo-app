@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut } from 'lucide-react';
+import { Search, Calendar, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut, LayoutTemplate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getMeetings, deleteMeeting, formatMeetingDate, formatDuration, type Meeting } from '@/services/meetingApi';
@@ -164,6 +164,15 @@ const MeetingsList: React.FC = () => {
                             SYNCED
                         </button>
                     </div>
+
+                    <Button
+                        variant="outline"
+                        onClick={() => navigate('/templates')}
+                        className="h-12 px-5 rounded-2xl border-slate-200 bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm transition-all hover:scale-105 active:scale-95 font-bold text-xs uppercase tracking-widest text-slate-600"
+                    >
+                        <LayoutTemplate className="h-4 w-4 mr-2" />
+                        Templates
+                    </Button>
 
                     <Button
                         variant="outline"

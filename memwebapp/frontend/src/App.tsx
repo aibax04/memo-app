@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 
 import MeetingsList from './pages/MeetingsList';
 import MeetingDetail from './pages/MeetingDetail';
+import Templates from './pages/Templates';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="/dashboard" element={<MeetingsList />} />
               <Route path="/meetings" element={<MeetingsList />} />
               <Route path="/meetings/:id" element={<MeetingDetail />} />
+              <Route path="/templates" element={<Templates />} />
             </Route>
 
             {/* Fallback route */}

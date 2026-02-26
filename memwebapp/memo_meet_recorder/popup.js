@@ -10,8 +10,8 @@
 
 const CONFIG = {
   API: {
-    BASE_URL: 'http://localhost:8000',
-    WEB_APP_URL: 'http://localhost:5173',
+    BASE_URL: 'https://ext.makememo.ai',
+    WEB_APP_URL: 'https://ext.makememo.ai',
     ENDPOINTS: {
       TEMPLATES: '/api/v1/web/templates'
     }

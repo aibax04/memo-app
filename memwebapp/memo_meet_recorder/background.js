@@ -379,9 +379,9 @@ const Auth = {
   async getApiBaseUrl() {
     try {
       const stored = await chrome.storage.local.get(['api_base_url']);
-      return stored.api_base_url || 'http://localhost:8000';
+      return stored.api_base_url || 'https://ext.makememo.ai';
     } catch (error) {
-      return 'http://localhost:8000';
+      return 'https://ext.makememo.ai';
     }
   }
 };

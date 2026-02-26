@@ -39,23 +39,43 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         <div className="absolute inset-0 z-0 opacity-[0.08]" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,1) 1.5px, transparent 1.5px)', backgroundSize: '48px 48px' }}></div>
 
         {/* Floating Abstract UI Elements / Badges */}
-        <div className="absolute top-[12%] left-[8%] z-10 animate-[bounce_8s_ease-in-out_infinite]">
+        <div className="absolute top-[15%] left-[10%] z-10 animate-[bounce_8s_ease-in-out_infinite]">
           <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl flex items-center gap-2 text-white/90 text-sm font-medium">
             <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
             Real-time Sync
           </div>
         </div>
 
-        <div className="absolute bottom-[10%] right-[8%] z-10 animate-[bounce_10s_ease-in-out_infinite]" style={{ animationDelay: '1.5s' }}>
+        <div className="absolute bottom-[15%] right-[10%] z-10 animate-[bounce_10s_ease-in-out_infinite]" style={{ animationDelay: '1.5s' }}>
           <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl flex items-center gap-2 text-white/90 text-sm font-medium">
             <span className="h-2 w-2 rounded-full bg-blue-300 animate-pulse"></span>
             AI Insights Extracted
           </div>
         </div>
 
+        <div className="absolute top-[15%] right-[10%] z-10 animate-[bounce_9s_ease-in-out_infinite]" style={{ animationDelay: '0.7s' }}>
+          <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl flex items-center gap-2 text-white/90 text-sm font-medium">
+            <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse"></span>
+            Smart Summaries
+          </div>
+        </div>
+
+        <div className="absolute bottom-[15%] left-[10%] z-10 animate-[bounce_11s_ease-in-out_infinite]" style={{ animationDelay: '2.5s' }}>
+          <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl flex items-center gap-2 text-white/90 text-sm font-medium">
+            <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></span>
+            Seamless Integrations
+          </div>
+        </div>
+
         <div className="absolute bottom-[35%] left-[6%] z-10 animate-[bounce_9s_ease-in-out_infinite] opacity-60" style={{ animationDelay: '0.5s' }}>
           <div className="h-16 w-16 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center">
             <div className="h-6 w-6 rounded-full bg-white/20 animate-ping"></div>
+          </div>
+        </div>
+
+        <div className="absolute top-[45%] right-[8%] z-10 animate-[bounce_12s_ease-in-out_infinite] opacity-40" style={{ animationDelay: '1.2s' }}>
+          <div className="h-12 w-12 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center">
+            <div className="h-4 w-4 rounded-full bg-white/20 animate-ping"></div>
           </div>
         </div>
 

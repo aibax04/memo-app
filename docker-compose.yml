@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./memwebapp/backend
+      dockerfile: Dockerfile
+    container_name: memoapp_backend
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./memwebapp/backend/.env
+    restart: always
+    environment:
+      - PORT=8002
+      - NODE_ENV=production
+
+  frontend:
+    build:
+      context: ./memwebapp/frontend
+      dockerfile: Dockerfile
+    container_name: memoapp_frontend
+    ports:
+      - "5173:80"
+    restart: always

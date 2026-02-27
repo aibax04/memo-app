@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut, LayoutTemplate } from 'lucide-react';
+import { Search, Calendar, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut, LayoutTemplate, Video, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getMeetings, deleteMeeting, formatMeetingDate, formatDuration, type Meeting } from '@/services/meetingApi';
@@ -13,6 +13,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
     PENDING: { label: 'Pending', color: 'text-amber-700', bgColor: 'bg-amber-50 border-amber-200', icon: <Clock className="h-3.5 w-3.5" /> },
     RECORDING: { label: 'Recording', color: 'text-red-600', bgColor: 'bg-red-50 border-red-200', icon: <Mic className="h-3.5 w-3.5 animate-pulse" /> },
     FAILED: { label: 'Failed', color: 'text-red-700', bgColor: 'bg-red-50 border-red-200', icon: <AlertCircle className="h-3.5 w-3.5" /> },
+};
+
+const PLATFORM_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+    google_meet: { label: 'Google Meet', icon: <Activity className="h-3 w-3" />, color: 'bg-blue-50 text-blue-700 border-blue-100' },
+    teams: { label: 'Microsoft Teams', icon: <Users className="h-3 w-3" />, color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+    zoom: { label: 'Zoom', icon: <Video className="h-3 w-3" />, color: 'bg-sky-50 text-sky-700 border-sky-100' },
 };
 
 const MeetingsList: React.FC = () => {
@@ -109,14 +115,14 @@ const MeetingsList: React.FC = () => {
     };
 
     return (
-        <div className="w-full relative min-h-[90vh]">
+        <div className="w-full relative flex flex-col min-h-0 flex-1">
             {/* Ambient Background Accents */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[10%] left-[-5%] w-[30%] h-[30%] rounded-full bg-[#1B2BB8]/5 blur-[120px]" />
             </div>
 
             {/* Header */}
-            <div className="relative z-10 mb-12 flex flex-col xl:flex-row xl:items-start justify-between gap-8">
+            <div className="relative z-10 mb-8 flex flex-col xl:flex-row xl:items-start justify-between gap-6 flex-shrink-0">
                 <div>
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center mb-2">
@@ -170,7 +176,7 @@ const MeetingsList: React.FC = () => {
             </div>
 
             {/* Content Area */}
-            <div className="relative z-10">
+            <div className="relative z-10 flex-1 min-h-0 flex flex-col">
                 {isLoading && meetings.length === 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {[...Array(8)].map((_, i) => (
@@ -187,12 +193,12 @@ const MeetingsList: React.FC = () => {
                         ))}
                     </div>
                 ) : meetings.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-300">
+                    <div className="flex flex-1 flex-col items-center justify-center py-12 sm:py-16 bg-white rounded-[2rem] border border-dashed border-slate-300">
                         <div className="p-6 bg-slate-50 rounded-full mb-6">
                             <Mic className="h-12 w-12 text-slate-300" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">No meetings found</h3>
-                        <p className="text-slate-500 max-w-xs text-center mb-8">
+                        <p className="text-slate-500 max-w-xs text-center mb-6">
                             {searchQuery ? `No meetings match "${searchQuery}".` : "You haven't recorded any meetings yet."}
                         </p>
                     </div>
@@ -216,6 +222,12 @@ const MeetingsList: React.FC = () => {
                                                     <span className="inline-flex items-center gap-1.5 px-1 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#1B2BB8] w-fit">
                                                         <Brain className="h-3 w-3" />
                                                         Intel extracted
+                                                    </span>
+                                                )}
+                                                {meeting.platform && PLATFORM_CONFIG[meeting.platform] && (
+                                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border ${PLATFORM_CONFIG[meeting.platform].color} w-fit`}>
+                                                        {PLATFORM_CONFIG[meeting.platform].icon}
+                                                        {PLATFORM_CONFIG[meeting.platform].label}
                                                     </span>
                                                 )}
                                             </div>
@@ -336,7 +348,7 @@ const MeetingsList: React.FC = () => {
             </div>
 
             {/* Layout Footer / Sign Out */}
-            <div className="relative z-10 mt-16 pt-8 border-t border-slate-200/50 flex justify-start pb-8">
+            <div className="relative z-10 mt-auto pt-6 border-t border-slate-200/50 flex justify-start pb-6 flex-shrink-0">
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-2.5 text-sm font-bold text-slate-500 hover:text-red-500 transition-all group hover:bg-red-50 px-5 py-3 rounded-2xl"

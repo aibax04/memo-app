@@ -169,6 +169,7 @@ def create_meeting_record(db: Session, meeting: MeetingRecordCreate, user_id: in
         audio_filename=meeting.audio_filename,
         s3_audio_path=meeting.s3_audio_path,
         user_id=user_id,
+        platform=meeting.platform,
         is_processed=has_processing,
         status=status
     )
@@ -411,6 +412,7 @@ def convert_meeting_to_response_format(meeting: MeetingRecord, include_details: 
         "status": meeting.status.value if meeting.status else "PENDING",
         "analytics_status": meeting.analytics_status.value if meeting.analytics_status else "PENDING",
         "duration": meeting.duration,
+        "platform": meeting.platform,
     }
 
     if include_details:

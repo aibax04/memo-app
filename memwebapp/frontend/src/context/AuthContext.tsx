@@ -34,7 +34,7 @@ const MOCK_USERS = [
 const isTokenExpired = (): boolean => {
   const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
   if (!tokenTimestamp) return true;
-  
+
   const expiryTimeMs = parseInt(tokenTimestamp) + (7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
   return Date.now() > expiryTimeMs;
 };
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const storedUser = localStorage.getItem("dashboardUser");
     const accessToken = localStorage.getItem("memoapp_access_token");
-    
+
     // Check if token has expired
     if (accessToken && isTokenExpired()) {
       console.log("🔒 Token has expired, logging out user");
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       navigate("/login");
       return;
     }
-    
+
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       console.log("🔄 Restoring user from localStorage:", parsedUser.email);
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    
+
     // Important: First check if we already have a user in localStorage
     // This would happen if the API login was successful
     const storedUser = localStorage.getItem("dashboardUser");
@@ -85,21 +85,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
     }
-    
+
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
-    
+
     const foundUser = MOCK_USERS.find(
       (user) => user.email === email && user.password === password
     );
-    
+
     if (foundUser) {
       console.log("👤 User authenticated via mock users");
       const { password, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
       localStorage.setItem("dashboardUser", JSON.stringify(userWithoutPassword));
-      
-      // Set token timestamp if not already set (for mock users)
+
+      // Set token timestamp and dummy auth data for mock users to sync with extension
+      const authData = {
+        token: 'mock_token_' + foundUser.id,
+        user: userWithoutPassword
+      };
+      localStorage.setItem('memoapp_auth_data', JSON.stringify(authData));
+
       if (!localStorage.getItem('memoapp_token_timestamp')) {
         localStorage.setItem('memoapp_token_timestamp', Date.now().toString());
         console.log("⏰ Setting token timestamp for 7-day expiry");
@@ -108,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("❌ Invalid email or password for mock user");
       throw new Error("Invalid email or password");
     }
-    
+
     setIsLoading(false);
   };
 

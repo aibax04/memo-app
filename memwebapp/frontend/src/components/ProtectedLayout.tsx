@@ -63,10 +63,10 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
       </div> */}
 
       {/* Add spacing below navbar */}
-      <div className="pt-6"></div>
+      <div className="pt-6 flex-shrink-0"></div>
 
       {/* Main content area that includes the sidebar and page content */}
-      <div className="flex-1 flex w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pb-10">
+      <div className="flex-1 flex min-h-0 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pb-6">
         <div className="w-full">
           {children || <Outlet />}
         </div>

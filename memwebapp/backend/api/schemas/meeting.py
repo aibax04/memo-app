@@ -31,6 +31,7 @@ class MeetingRecordBase(BaseModel):
     templateid: Optional[str] = None
     custom_template_points: Optional[str] = None  # Custom template points for template ID 12
     duration: Optional[int] = None
+    platform: Optional[str] = None
 
 class MeetingRecordCreate(MeetingRecordBase):
     pass

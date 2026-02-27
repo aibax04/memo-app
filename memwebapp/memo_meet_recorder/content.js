@@ -63,7 +63,7 @@ function detectPlatform() {
   if (hostname.includes('meet.google.com')) {
     return PLATFORMS.GOOGLE_MEET;
   }
-  if (hostname.includes('teams.microsoft.com') || hostname.includes('teams.live.com')) {
+  if (hostname.includes('teams.microsoft.com') || hostname.includes('teams.live.com') || hostname.includes('teams.cloud.microsoft')) {
     return PLATFORMS.TEAMS;
   }
   if (hostname.includes('zoom.us') || hostname.includes('zoom.com')) {
@@ -188,6 +188,11 @@ function detectTeamsTitle() {
     '.call-title',
     '[data-cid="title"]',
     '.ts-title-bar-title',
+    '[aria-label="Meeting information"]',
+    'h1',
+    '[role="heading"]',
+    '.title-text',
+    '[data-canvas-title]'
   ];
 
   for (const selector of selectors) {
@@ -666,6 +671,8 @@ function detectTeamsMuteState() {
     'button[id="microphone-button"], ' +
     'button[data-tid*="toggle-mute"], ' +
     'button[data-tid*="microphone"], ' +
+    'button[data-tid="micro-button"], ' +
+    'button[data-tid="microphone-button"], ' +
     '[data-cid="calling-unified-bar-mic"]'
   );
 

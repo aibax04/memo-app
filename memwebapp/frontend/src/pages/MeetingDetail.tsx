@@ -5,7 +5,7 @@ import {
     FileText, BarChart3, Mic, AlertCircle, Loader2, CheckCircle2,
     RefreshCw, ChevronRight, MessageSquare, ListChecks, Lightbulb,
     TrendingUp, ThumbsUp, ThumbsDown, Minus, Trash2, Zap, Brain, Activity,
-    Shield, Target, Award, UserPlus, Info, Volume1, Waves
+    Shield, Target, Award, UserPlus, Info, Volume1, Waves, Video
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -233,6 +233,24 @@ const MeetingDetail: React.FC = () => {
                     <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
                         {meeting.status}
                     </span>
+                    {meeting.platform === 'teams' && (
+                        <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100 flex items-center gap-1.5">
+                            <Users className="h-3 w-3" />
+                            Microsoft Teams
+                        </span>
+                    )}
+                    {meeting.platform === 'google_meet' && (
+                        <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-100 flex items-center gap-1.5">
+                            <Activity className="h-3 w-3" />
+                            Google Meet
+                        </span>
+                    )}
+                    {meeting.platform === 'zoom' && (
+                        <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 text-[10px] font-bold uppercase tracking-wider border border-sky-100 flex items-center gap-1.5">
+                            <Video className="h-3 w-3" />
+                            Zoom
+                        </span>
+                    )}
                     <span className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
                         <Calendar className="h-3 w-3" />
                         {formatMeetingDate(meeting.created_at)}
@@ -634,17 +652,17 @@ const SidebarContent = ({ meeting }: { meeting: Meeting }) => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Energy Shifts</p>
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Energy Shifts</p>
                             <div className="flex items-center gap-2">
-                                <Activity className="h-4 w-4 text-blue-400" />
+                                <Activity className="h-4 w-4 text-blue-500" />
                                 <span className="text-xl font-black">{analytics.energy_shifts || 0}</span>
                             </div>
                         </div>
-                        <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Silences</p>
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Silences</p>
                             <div className="flex items-center gap-2">
-                                <Volume1 className="h-4 w-4 text-orange-400" />
+                                <Volume1 className="h-4 w-4 text-orange-500" />
                                 <span className="text-xl font-black">{analytics.notable_silences || 0}</span>
                             </div>
                         </div>
@@ -652,10 +670,10 @@ const SidebarContent = ({ meeting }: { meeting: Meeting }) => {
 
                     {analytics.key_moments && analytics.key_moments.length > 0 && (
                         <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Key Moments</p>
+                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-3">Key Moments</p>
                             <div className="space-y-2">
                                 {analytics.key_moments.slice(0, 3).map((moment: string, i: number) => (
-                                    <div key={i} className="flex gap-3 text-xs font-medium text-slate-300 bg-white/5 p-2.5 rounded-xl border border-white/5">
+                                    <div key={i} className="flex gap-3 text-xs font-medium text-slate-800 bg-slate-100 p-2.5 rounded-xl border border-slate-200">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
                                         <span>{moment}</span>
                                     </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Search, Plus, Pencil, Trash2, FileText, ChevronLeft, X, Save,
-    Loader2, ClipboardList, LayoutTemplate, Sparkles, RefreshCw
+    Loader2, LayoutTemplate, Sparkles, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -275,8 +275,8 @@ const Templates: React.FC = () => {
             </div>
 
             {/* Header */}
-            <div className="relative z-10 mb-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                <div className="flex flex-col gap-3">
+            <div className="relative z-10 mb-14 flex flex-col md:flex-row md:items-center justify-between gap-10">
+                <div className="flex flex-col gap-4">
                     <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-[#1B2BB8] transition-colors w-fit group">
                         <ChevronLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />
                         Back to Dashboard
@@ -293,13 +293,13 @@ const Templates: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                    <div className="relative group min-w-0">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" />
                         <Input
                             placeholder="Search templates..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-12 pr-4 w-full md:w-[280px] h-12 bg-white/80 backdrop-blur-sm border-slate-200 rounded-2xl focus:ring-blue-500/10 shadow-sm transition-all focus:bg-white focus:shadow-md"
+                            className="pl-12 pr-4 w-full md:w-[260px] h-12 bg-white/80 backdrop-blur-sm border-slate-200 rounded-2xl focus:ring-blue-500/10 shadow-sm transition-all focus:bg-white focus:shadow-md"
                         />
                     </div>
 
@@ -355,14 +355,14 @@ const Templates: React.FC = () => {
             {/* Content */}
             <div className="relative z-10">
                 {isLoading && templates.length === 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[...Array(6)].map((_, i) => (
-                            <div key={i} className="bg-white rounded-[2rem] border border-slate-100 p-7 space-y-4 animate-pulse">
+                            <div key={i} className="bg-white rounded-[2rem] border border-slate-100 p-8 space-y-5 animate-pulse">
                                 <div className="flex justify-between items-start">
                                     <div className="h-6 w-24 bg-slate-100 rounded-full" />
                                     <div className="h-8 w-8 bg-slate-100 rounded-lg" />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     <div className="h-5 w-3/4 bg-slate-100 rounded-md" />
                                     <div className="h-4 w-1/2 bg-slate-100 rounded-md" />
                                 </div>
@@ -370,12 +370,12 @@ const Templates: React.FC = () => {
                         ))}
                     </div>
                 ) : templates.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-300">
-                        <div className="p-6 bg-slate-50 rounded-full mb-6">
+                    <div className="flex flex-col items-center justify-center py-24 bg-white rounded-[2rem] border border-dashed border-slate-300">
+                        <div className="p-6 bg-slate-50 rounded-full mb-8">
                             <LayoutTemplate className="h-12 w-12 text-slate-300" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">No templates found</h3>
-                        <p className="text-slate-500 max-w-xs text-center mb-8">
+                        <p className="text-slate-500 max-w-xs text-center mb-10">
                             {searchQuery
                                 ? `No templates match "${searchQuery}".`
                                 : "Create your first template to customise meeting AI processing."}
@@ -387,11 +387,11 @@ const Templates: React.FC = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {templates.map((template) => (
                             <div
                                 key={template.id}
-                                className="group relative bg-white/80 backdrop-blur-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.12)] rounded-[2.5rem] border border-slate-200/60 p-7 cursor-pointer overflow-hidden"
+                                className="group relative bg-white/80 backdrop-blur-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.12)] rounded-[2.5rem] border border-slate-200/60 p-8 cursor-pointer overflow-hidden"
                                 onClick={() => openEdit(template)}
                             >
                                 {/* Hover glow */}
@@ -399,7 +399,7 @@ const Templates: React.FC = () => {
 
                                 <div className="relative z-10">
                                     {/* Badge row */}
-                                    <div className="flex justify-between items-start mb-5">
+                                    <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center gap-2">
                                             {isDefault(template) ? (
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700">
@@ -431,42 +431,35 @@ const Templates: React.FC = () => {
                                     </div>
 
                                     {/* Title */}
-                                    <h3 className="text-lg font-bold text-slate-900 line-clamp-2 mb-2 group-hover:text-[#1B2BB8] transition-colors leading-tight tracking-tight">
+                                    <h3 className="text-lg font-bold text-slate-900 line-clamp-2 mb-3 group-hover:text-[#1B2BB8] transition-colors leading-tight tracking-tight">
                                         {template.title}
                                     </h3>
 
                                     {/* Description */}
                                     {template.description && (
-                                        <p className="text-sm text-slate-500 line-clamp-2 mb-5 leading-relaxed">
+                                        <p className="text-sm text-slate-500 line-clamp-2 mb-6 leading-relaxed">
                                             {template.description}
                                         </p>
                                     )}
 
-                                    {/* Key Points preview */}
-                                    <div className="space-y-3 pt-4 border-t border-slate-100/80">
+                                    {/* Key Points preview - simplified */}
+                                    <div className="pt-6 border-t border-slate-100/80 space-y-4">
                                         {(template.key_points_prompt || template.key_points || []).length > 0 && (
-                                            <div className="flex items-start gap-2">
-                                                <ClipboardList className="h-3.5 w-3.5 text-blue-500/60 mt-0.5 shrink-0" />
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {(template.key_points_prompt || template.key_points || []).slice(0, 3).map((kp, i) => (
-                                                        <span key={i} className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 rounded-md border border-slate-100">
-                                                            {kp}
-                                                        </span>
-                                                    ))}
-                                                    {(template.key_points_prompt || template.key_points || []).length > 3 && (
-                                                        <span className="px-2 py-0.5 text-[10px] font-bold text-slate-400">
-                                                            +{(template.key_points_prompt || template.key_points || []).length - 3} more
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                            <p className="text-xs text-slate-500 leading-relaxed">
+                                                <span className="font-semibold text-slate-600">Key points: </span>
+                                                {(template.key_points_prompt || template.key_points || [])
+                                                    .slice(0, 3)
+                                                    .join(', ')}
+                                                {(template.key_points_prompt || template.key_points || []).length > 3 &&
+                                                    ` +${(template.key_points_prompt || template.key_points || []).length - 3} more`}
+                                            </p>
                                         )}
 
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                                        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
                                             Updated {new Date(template.updated_at).toLocaleDateString('en-IN', {
                                                 day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
                                             })}
-                                        </div>
+                                        </p>
                                     </div>
                                 </div>
 

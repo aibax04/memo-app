@@ -37,6 +37,7 @@ export interface Meeting {
     analytics_status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
     analytics_data: any | null;
     duration: number | null;
+    platform: string | null;
 }
 
 export interface PaginatedMeetings {

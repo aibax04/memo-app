@@ -134,6 +134,12 @@ const Auth = {
       const result = await chrome.storage.local.get([Storage.AUTH_KEY]);
       let authData = result[Storage.AUTH_KEY];
 
+      // If missing, try to pro-actively pull from any open dashboard tab
+      if (!authData) {
+        console.log('[Background] Auth data missing, checking for open dashboard tabs...');
+        authData = await this.syncFromOpenTabs();
+      }
+
       // Handle legacy string format or corrupted data
       if (typeof authData === 'string') {
         try {
@@ -157,6 +163,37 @@ const Auth = {
       console.error('[Background] Error getting auth data:', error);
       return null;
     }
+  },
+
+  async syncFromOpenTabs() {
+    try {
+      // Look for dashboard tabs
+      const tabs = await chrome.tabs.query({
+        url: [
+          "https://ext.makememo.ai/*",
+          "http://localhost:5173/*",
+          "http://127.0.0.1:5173/*"
+        ]
+      });
+
+      for (const tab of tabs) {
+        try {
+          console.log(`[Background] Attempting sync from tab: ${tab.url}`);
+          const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_WEB_AUTH_DATA' });
+          if (response?.success && response.authData?.token) {
+            console.log('[Background] Successfully pulled auth data from tab');
+            await this.setData(response.authData);
+            return response.authData;
+          }
+        } catch (e) {
+          // Tab might not have content script loaded yet
+          console.log(`[Background] Could not pull from tab ${tab.id}: ${e.message}`);
+        }
+      }
+    } catch (e) {
+      console.error('[Background] Error syncing from tabs:', e);
+    }
+    return null;
   },
 
   async setData(data) {
@@ -610,6 +647,7 @@ async function startRecording(tabId, meetingDetails) {
     const isMeetingTab = tab.url?.includes('meet.google.com') ||
       tab.url?.includes('teams.microsoft.com') ||
       tab.url?.includes('teams.live.com') ||
+      tab.url?.includes('teams.cloud.microsoft') ||
       tab.url?.includes('zoom.us') ||
       tab.url?.includes('zoom.com');
 
@@ -618,9 +656,11 @@ async function startRecording(tabId, meetingDetails) {
     }
 
     // Detect platform
-    let platform = 'teams'; // Default
+    let platform = 'unknown';
     if (tab.url.includes('meet.google.com')) {
       platform = 'google_meet';
+    } else if (tab.url.includes('teams.microsoft.com') || tab.url.includes('teams.live.com') || tab.url.includes('teams.cloud.microsoft')) {
+      platform = 'teams';
     } else if (tab.url.includes('zoom.us') || tab.url.includes('zoom.com')) {
       platform = 'zoom';
     }

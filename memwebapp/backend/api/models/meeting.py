@@ -40,6 +40,7 @@ class MeetingRecord(Base):
     is_processed = Column(Boolean, default=False)
     status = Column(Enum(TranscriptionStatus), default=TranscriptionStatus.PENDING, nullable=False, index=True)
     duration = Column(Integer, nullable=True)  # Duration in minutes
+    platform = Column(String, nullable=True)  # Platform name (google_meet, teams, zoom)
     
     # Analytics fields
     analytics_status = Column(Enum(AnalyticsStatus), default=AnalyticsStatus.PENDING, nullable=False, index=True)

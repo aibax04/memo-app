@@ -17,6 +17,8 @@
     "https://*.teams.microsoft.com/*",
     "https://teams.live.com/*",
     "https://*.teams.live.com/*",
+    "https://teams.cloud.microsoft/*",
+    "https://*.teams.cloud.microsoft/*",
     "https://zoom.us/*",
     "https://*.zoom.us/*",
     "https://ext.makememo.ai/*",
@@ -37,6 +39,8 @@
         "https://*.teams.microsoft.com/*",
         "https://teams.live.com/*",
         "https://*.teams.live.com/*",
+        "https://teams.cloud.microsoft/*",
+        "https://*.teams.cloud.microsoft/*",
         "https://zoom.us/*",
         "https://*.zoom.us/*"
       ],

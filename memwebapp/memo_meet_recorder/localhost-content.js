@@ -43,15 +43,15 @@ function safeSendMessage(message, callback) {
     stopAllIntervals();
     return;
   }
-  
+
   try {
-    chrome.runtime.sendMessage(message, function(response) {
+    chrome.runtime.sendMessage(message, function (response) {
       try {
         if (chrome.runtime.lastError) {
           const errorMsg = chrome.runtime.lastError.message || '';
-          if (errorMsg.includes('Extension context invalidated') || 
-              errorMsg.includes('message port closed') ||
-              errorMsg.includes('Receiving end does not exist')) {
+          if (errorMsg.includes('Extension context invalidated') ||
+            errorMsg.includes('message port closed') ||
+            errorMsg.includes('Receiving end does not exist')) {
             stopAllIntervals();
           }
           return;
@@ -77,30 +77,39 @@ function syncAuthToExtension() {
     stopAllIntervals();
     return;
   }
-  
+
   let authDataString;
   try {
     authDataString = localStorage.getItem('memoapp_auth_data');
   } catch (e) {
     return;
   }
-  
-  if (!authDataString) return;
-  
+
+  if (!authDataString) {
+    // If auth data is missing in web, clear it in extension too
+    safeSendMessage({ action: 'CLEAR_AUTH_DATA' }, (response) => {
+      if (response?.success) console.log('[LocalhostContent] Auth cleared (logged out from web)');
+    });
+    return;
+  }
+
   let authData;
   try {
     authData = JSON.parse(authDataString);
   } catch (e) {
     return;
   }
-  
-  if (!authData || !authData.token) return;
-  
+
+  if (!authData || !authData.token) {
+    safeSendMessage({ action: 'CLEAR_AUTH_DATA' });
+    return;
+  }
+
   safeSendMessage(
     { action: 'SET_AUTH_DATA', authData: authData },
-    function(response) {
+    function (response) {
       if (response?.success) {
-        console.log('[LocalhostContent] Auth synced');
+        console.log('[LocalhostContent] Auth synced from web');
       }
     }
   );
@@ -110,7 +119,7 @@ function syncAuthToExtension() {
 // STORAGE OBSERVER
 // ============================================================================
 
-window.addEventListener('storage', function(event) {
+window.addEventListener('storage', function (event) {
   if (!isContextValid) return;
   if (event.key === 'memoapp_auth_data') {
     syncAuthToExtension();
@@ -118,9 +127,9 @@ window.addEventListener('storage', function(event) {
 });
 
 // Intercept localStorage.setItem
-(function() {
+(function () {
   const originalSetItem = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = function(key, value) {
+  localStorage.setItem = function (key, value) {
     originalSetItem(key, value);
     if (key === 'memoapp_auth_data' && isContextValid) {
       setTimeout(syncAuthToExtension, 100);
@@ -134,9 +143,9 @@ window.addEventListener('storage', function(event) {
 
 if (checkExtensionContext()) {
   try {
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       if (!isContextValid) return false;
-      
+
       if (request.action === 'GET_WEB_AUTH_DATA') {
         try {
           const authDataString = localStorage.getItem('memoapp_auth_data');
@@ -160,8 +169,8 @@ if (checkExtensionContext()) {
 if (checkExtensionContext()) {
   console.log('[LocalhostContent] Loaded');
   syncAuthToExtension();
-  
-  syncInterval = setInterval(function() {
+
+  syncInterval = setInterval(function () {
     if (!isContextValid) {
       clearInterval(syncInterval);
       return;

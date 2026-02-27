@@ -39,7 +39,8 @@ let state = {
   durationInterval: null,
   templates: [],
   lastTemplateId: null,
-  pendingUpload: false
+  pendingUpload: false,
+  currentMeetingId: null
 };
 
 // ============================================================================
@@ -88,6 +89,7 @@ function initElements() {
   elements.uploadMessage = document.getElementById('uploadMessage');
   elements.progressFill = document.getElementById('progressFill');
   elements.uploadBtn = document.getElementById('uploadBtn');
+  elements.gmailBtn = document.getElementById('gmailBtn');
   elements.newRecordingBtn = document.getElementById('newRecordingBtn');
 }
 
@@ -588,7 +590,7 @@ async function startRecording() {
 
       if (tab.url.includes('meet.google.com')) {
         state.currentPlatform = 'google_meet';
-      } else if (tab.url.includes('teams.microsoft.com') || tab.url.includes('teams.live.com')) {
+      } else if (tab.url.includes('teams.microsoft.com') || tab.url.includes('teams.live.com') || tab.url.includes('teams.cloud.microsoft')) {
         state.currentPlatform = 'teams';
       } else if (tab.url.includes('zoom.us') || tab.url.includes('zoom.com')) {
         state.currentPlatform = 'zoom';
@@ -748,6 +750,10 @@ async function startNewRecording() {
     console.error('[Popup] Failed to clear pending audio:', error);
   }
 
+  // Reset state
+  state.currentMeetingId = null;
+  elements.gmailBtn?.classList.add('hidden');
+
   // Reset forms but keep template selection
   if (elements.meetingTitle) elements.meetingTitle.value = '';
   if (elements.meetingDescription) elements.meetingDescription.value = '';
@@ -853,6 +859,71 @@ async function fetchMeetingTitle(tabId) {
 }
 
 // ============================================================================
+// EXPORTING
+// ============================================================================
+
+async function exportToGmail() {
+  if (!state.currentMeetingId) {
+    UI.showToast('No meeting found to export', 'error');
+    return;
+  }
+
+  try {
+    UI.setButtonLoading(elements.gmailBtn, 'Exporting...');
+
+    const token = state.authData?.token;
+    if (!token) throw new Error('Not authenticated');
+
+    const apiUrl = `${CONFIG.API.BASE_URL}/api/v1/web/meetings/${state.currentMeetingId}`;
+    const response = await fetch(apiUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch meeting details');
+
+    const meeting = await response.json();
+
+    if (!meeting.transcription || meeting.transcription.length === 0) {
+      if (meeting.status === 'PENDING') {
+        UI.showToast('Transcript is still being generated. Please wait...', 'info');
+      } else {
+        UI.showToast('No transcript available for this meeting', 'error');
+      }
+      return;
+    }
+
+    // Format transcript
+    let body = `Meeting: ${meeting.title}\n`;
+    if (meeting.description) body += `Description: ${meeting.description}\n`;
+    body += `Date: ${new Date(meeting.created_at).toLocaleString()}\n\n`;
+    body += `--- TRANSCRIPT ---\n\n`;
+
+    meeting.transcription.forEach(seg => {
+      const speaker = seg.speaker || 'Unknown';
+      body += `[${speaker}]: ${seg.text}\n\n`;
+    });
+
+    if (meeting.summary) {
+      body += `\n--- SUMMARY ---\n${meeting.summary}\n`;
+    }
+
+    // Gmail Compose URL
+    const subject = encodeURIComponent(`Meeting Transcript: ${meeting.title}`);
+    const bodyEncoded = encodeURIComponent(body);
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${subject}&body=${bodyEncoded}`;
+
+    chrome.tabs.create({ url: gmailUrl });
+    UI.showToast('Gmail draft opened!', 'success');
+
+  } catch (error) {
+    console.error('[Popup] Export failed:', error);
+    UI.showToast('Export failed. Please try again.', 'error');
+  } finally {
+    UI.setButtonNormal(elements.gmailBtn, 'Draft', '<svg viewBox="0 0 24 24" fill="none" stroke="#EA4335" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>');
+  }
+}
+
+// ============================================================================
 // MESSAGE LISTENER
 // ============================================================================
 
@@ -871,6 +942,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           elements.uploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
         }
         UI.showToast('Recording uploaded successfully', 'success');
+
+        // Store meeting ID for export
+        if (message.result?.id) {
+          state.currentMeetingId = message.result.id;
+          elements.gmailBtn?.classList.remove('hidden');
+        }
       } else {
         elements.uploadSection?.classList.add('error');
         if (elements.uploadIcon) {
@@ -900,6 +977,7 @@ function setupEventListeners() {
   elements.startBtn?.addEventListener('click', startRecording);
   elements.stopBtn?.addEventListener('click', stopRecording);
   elements.uploadBtn?.addEventListener('click', uploadRecording);
+  elements.gmailBtn?.addEventListener('click', exportToGmail);
   elements.newRecordingBtn?.addEventListener('click', startNewRecording);
 
   // Save template preference when changed

@@ -17,7 +17,7 @@ let accessToken: string | null = localStorage.getItem('memoapp_access_token');
 const isTokenExpired = (): boolean => {
   const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
   if (!tokenTimestamp) return true;
-  
+
   const expiryTimeMs = parseInt(tokenTimestamp) + (TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
   return Date.now() > expiryTimeMs;
 };
@@ -40,12 +40,18 @@ interface ApiOptions {
 
 // Helper function to make authenticated API calls
 export const callApi = async (
-  endpoint: string, 
-  method: string = 'GET', 
+  endpoint: string,
+  method: string = 'GET',
   body?: any,
   useAuth: boolean = true,
   contentType: string = 'application/json'
 ): Promise<any> => {
+  // If auth is required but no token exists, redirect to login immediately
+  if (useAuth && !accessToken) {
+    console.warn('🚫 No access token found, skipping meetings fetch');
+    return { error: "No authentication token", networkError: false };
+  }
+
   // Check if token is expired before making the request
   if (useAuth && accessToken && isTokenExpired()) {
     console.log('🔒 Token expired before API call, clearing token');
@@ -53,8 +59,10 @@ export const callApi = async (
     localStorage.removeItem('memoapp_access_token');
     localStorage.removeItem('memoapp_token_timestamp');
     localStorage.removeItem('memoapp_auth_data');
+    localStorage.removeItem('dashboardUser');
+    localStorage.removeItem('memo_pro');
     toast.error("Your session has expired. Please log in again.");
-    window.location.href = '/login'; // Redirect to login
+    window.location.href = '/login';
     return { error: "Authentication token expired" };
   }
 
@@ -63,11 +71,11 @@ export const callApi = async (
     if (body) {
       console.log('Request Body:', body);
     }
-    
+
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-    
+
     const options: ApiOptions = {
       method,
       headers: {
@@ -102,21 +110,23 @@ export const callApi = async (
     });
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-    
+
     // Clear the timeout
     clearTimeout(timeoutId);
-    
+
     console.log(`Response status: ${response.status}`);
-    
-    // Handle 401 Unauthorized globally
-    if (response.status === 401) {
-      console.error('Authentication failed. Token may be expired.');
+
+    // Handle 401 Unauthorized or 403 Forbidden globally
+    if (response.status === 401 || response.status === 403) {
+      console.error(`Authentication failed (${response.status}). Token may be expired or invalid.`);
       localStorage.removeItem('memoapp_access_token');
       localStorage.removeItem('memoapp_token_timestamp');
       localStorage.removeItem('memoapp_auth_data');
+      localStorage.removeItem('dashboardUser');
+      localStorage.removeItem('memo_pro');
       accessToken = null;
       toast.error("Authentication failed. Please log in again.");
-      window.location.href = '/login'; // Redirect to login
+      window.location.href = '/login';
       return { error: "Authentication failed" };
     }
 
@@ -134,35 +144,35 @@ export const callApi = async (
         data = { text, status: response.status };
       }
     }
-    
+
     console.log(`✅ API Response: ${method} ${endpoint}`, data);
-    
+
     if (!response.ok) {
       console.error(`❌ API Error: ${response.status} ${response.statusText}`, data);
       return { error: data.detail || data || "API error occurred", status: response.status };
     }
-    
+
     return data;
   } catch (error) {
     console.error(`❌ API Error: ${method} ${endpoint}`, error);
     // Handle specific error types
     if (error instanceof TypeError && error.message === "Failed to fetch") {
-      return { 
-        error: "Failed to fetch", 
+      return {
+        error: "Failed to fetch",
         networkError: true,
         message: "Network error: Unable to connect to the server. Please check your internet connection."
       };
     }
     // Handle timeout errors
     if (error instanceof DOMException && error.name === 'AbortError') {
-      return { 
-        error: "Request timeout", 
+      return {
+        error: "Request timeout",
         networkError: true,
         message: "The request took too long to complete. The server might be busy processing other requests. Please try again in a moment."
       };
     }
-    
-    return { 
+
+    return {
       error: error instanceof Error ? error.message : "Unknown error occurred",
       networkError: true,
       message: "An unexpected error occurred. Please try again."
@@ -175,15 +185,15 @@ export const loginUser = async (username: string, password: string): Promise<any
   console.log('🔑 Attempting to login with username:', username);
   // Important: Use application/x-www-form-urlencoded for token endpoint
   const result = await callApi(
-    '/token', 
-    'POST', 
-    { username, password }, 
-    false, 
+    '/token',
+    'POST',
+    { username, password },
+    false,
     'application/x-www-form-urlencoded'
   );
-  
+
   console.log('Login result:', result);
-  
+
   if (result.access_token) {
     // Save token to memory and localStorage
     accessToken = result.access_token;
@@ -197,14 +207,43 @@ export const loginUser = async (username: string, password: string): Promise<any
     };
     localStorage.setItem('memoapp_auth_data', JSON.stringify(authData));
 
-    console.log('🔑 User authenticated successfully with token:', 
+    console.log('🔑 User authenticated successfully with token:',
       result.access_token.substring(0, 10) + '...',
       `(expires in ${TOKEN_EXPIRY_DAYS} days)`
     );
+
+    // Save pro status from server
+    if (result.is_pro !== undefined) {
+      localStorage.setItem('memo_pro', result.is_pro ? 'true' : 'false');
+      window.dispatchEvent(new Event('memo_pro_updated'));
+    }
+
     return result;
   }
-  
+
   return { error: result.error || "Login failed" };
+};
+
+export const getProStatus = async (): Promise<{ is_pro: boolean }> => {
+  return await callApi('/pro-status', 'GET');
+};
+
+export const activatePro = async (promoCode: string): Promise<any> => {
+  const result = await callApi('/activate-pro', 'POST', { promo_code: promoCode });
+  if (result && !result.error) {
+    localStorage.setItem('memo_pro', 'true');
+    window.dispatchEvent(new Event('memo_pro_updated'));
+  }
+  return result;
+};
+
+export const revokePro = async (): Promise<any> => {
+  const result = await callApi('/revoke-pro', 'POST');
+  if (result && !result.error) {
+    localStorage.setItem('memo_pro', 'false');
+    window.dispatchEvent(new Event('memo_pro_updated'));
+  }
+  return result;
 };
 
 export const createUser = async (email: string, password: string, name?: string): Promise<any> => {
@@ -213,7 +252,7 @@ export const createUser = async (email: string, password: string, name?: string)
   if (name) {
     Object.assign(userData, { name });
   }
-  
+
   return await callApi('/users/', 'POST', userData, false);
 };
 
@@ -221,21 +260,21 @@ export const createUser = async (email: string, password: string, name?: string)
 export const createDashboard = async (title: string, description?: string): Promise<any> => {
   console.log('📊 Creating new dashboard:', title);
   const response = await callApi('/dashboards/', 'POST', { title, description });
-  
+
   // Log the response for debugging
   console.log('Dashboard creation response:', response);
-  
+
   if (response && !response.error) {
     // Ensure we have a valid dashboard ID
     const dashboardId = response.id || response.dashboard_id;
-    
+
     if (!dashboardId) {
       console.warn('Dashboard created but no ID returned from API');
     } else {
       console.log(`Dashboard created successfully with ID: ${dashboardId}`);
     }
   }
-  
+
   return response;
 };
 
@@ -244,15 +283,15 @@ export const getDashboards = async (): Promise<any> => {
   return await callApi('/dashboards/');
 };
 
-export const getDashboard = async (dashboardId: string | number, page:number=1, limit:number=6): Promise<any> => {
+export const getDashboard = async (dashboardId: string | number, page: number = 1, limit: number = 6): Promise<any> => {
   console.log(`📊 Fetching dashboard with ID: ${dashboardId}`);
-  
+
   try {
     const response = await callApi(`/dashboards/${dashboardId}`);
-    
+
     // Log the complete response for debugging
     console.log('getDashboard raw response:', JSON.stringify(response).substring(0, 500) + '...');
-    
+
     // Make sure to handle both the dashboard data and its charts
     if (!response.error && response) {
       // Get charts for this dashboard if they're not included in the response
@@ -265,7 +304,7 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
           response.charts = chartsResponse.map(chart => {
             // Process chart data to match the expected format in frontend
             let chartData = {};
-            
+
             // Extract data from the API response format
             if (chart.config?.data?.data?.datasets) {
               chartData = chart.config.data;
@@ -274,7 +313,7 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
             } else if (chart.config?.data) {
               chartData = { data: chart.config.data };
             }
-            
+
             return {
               id: chart.id?.toString() || '',
               name: chart.title || '',
@@ -297,7 +336,7 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
         // Process chart data if it's already in the response
         response.charts = response.charts.map(chart => {
           let chartData = {};
-          
+
           // Extract data from the API response format
           if (chart.config?.data?.data?.datasets) {
             chartData = chart.config.data;
@@ -306,7 +345,7 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
           } else if (chart.config?.data) {
             chartData = { data: chart.config.data };
           }
-          
+
           return {
             id: chart.id?.toString() || '',
             name: chart.title || '',
@@ -321,12 +360,12 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
         });
         console.log(`✅ Dashboard includes ${response.charts.length} charts`);
       }
-      
+
       // Always ensure charts property exists
       if (!response.charts) {
         response.charts = [];
       }
-      
+
       // Return the full dashboard object with charts
       return {
         id: response.id || dashboardId,
@@ -337,14 +376,14 @@ export const getDashboard = async (dashboardId: string | number, page:number=1, 
         charts: response.charts || []
       };
     }
-    
-    return { 
+
+    return {
       error: response.error || "Failed to fetch dashboard",
       charts: [] // Always provide empty charts array even on error
     };
   } catch (error) {
     console.error("❌ Error in getDashboard:", error);
-    return { 
+    return {
       error: error instanceof Error ? error.message : "Unknown error in getDashboard",
       charts: [] // Always provide empty charts array even on error
     };
@@ -362,7 +401,7 @@ export const deleteDashboard = async (dashboardId: string | number): Promise<any
 };
 
 // Chart functions
-export const getDashboardCharts = async (dashboardId: string | number, page:number=1, limit:number=6): Promise<any> => {
+export const getDashboardCharts = async (dashboardId: string | number, page: number = 1, limit: number = 6): Promise<any> => {
   console.log(`📈 Fetching charts for dashboard ID: ${dashboardId}`);
   const response = await callApi(`/dashboards/${dashboardId}/charts?page=${page}&limit=${limit}`);
   console.log(response);
@@ -379,15 +418,15 @@ export const getChart = async (chartId: string | number): Promise<any> => {
 };
 
 export const createChart = async (
-  dashboardId: string | number, 
-  title: string, 
+  dashboardId: string | number,
+  title: string,
   chartType: string,
   config: any
 ): Promise<any> => {
   console.log(`📊 Creating new chart for dashboard ID: ${dashboardId}`);
-  return await callApi('/charts/', 'POST', { 
-    dashboard_id: dashboardId, 
-    title, 
+  return await callApi('/charts/', 'POST', {
+    dashboard_id: dashboardId,
+    title,
     chart_type: chartType,
     config
   });
@@ -401,7 +440,7 @@ export const generateChart = async (
   dataSource: string = "dishtv"
 ): Promise<any> => {
   console.log(`🔮 Generating chart with prompt: "${prompt}"`);
-  try {    
+  try {
     return await callApi('/generate_chart', 'POST', {
       dashboard_id,
       title,
@@ -411,8 +450,8 @@ export const generateChart = async (
     });
   } catch (error) {
     console.error('Chart generation error:', error);
-    return { 
-      error: error instanceof Error ? error.message : "Failed to generate chart", 
+    return {
+      error: error instanceof Error ? error.message : "Failed to generate chart",
       networkError: true,
       message: "We couldn't connect to the chart generation service. Please try again in a moment."
     };
@@ -420,25 +459,25 @@ export const generateChart = async (
 };
 
 export const updateChart = async (
-  chartId: string | number, 
-  title: string, 
+  chartId: string | number,
+  title: string,
   chartType: string,
   config: any,
   dashboardId?: string | number
 ): Promise<any> => {
   console.log(`🔄 Updating chart with ID: ${chartId} to type: ${chartType}`);
-  
-  const requestBody: any = { 
-    title, 
+
+  const requestBody: any = {
+    title,
     chart_type: chartType,
     config
   };
-  
+
   // Add dashboard_id if provided
   if (dashboardId) {
     requestBody.dashboard_id = dashboardId;
   }
-  
+
   return await callApi(`/charts/${chartId}`, 'PUT', requestBody);
 };
 
@@ -456,19 +495,19 @@ export const getCallRecordsByChart = async (
 ): Promise<any> => {
   console.log(`📞 🚀 MAKING API CALL: Fetching call records for chart ${chartId}, label: "${label} and page ${page}"`);
   console.log(`📞 🌐 FULL URL: ${API_BASE_URL}/call-records/chart/${chartId}?label=${encodeURIComponent(label[0])}&page=${page}&limit=${limit}`);
-  
+
   // Construct query parameters
   const queryParams = new URLSearchParams();
   label.forEach(l => queryParams.append('label', l));
   queryParams.append('page', page.toString());
   queryParams.append('limit', limit.toString());
-  
+
   const endpoint = `/call-records/chart/${chartId}?${queryParams}`;
   console.log(`📞 📡 CALLING ENDPOINT: ${endpoint}`);
-  
-  const result = await callApi(endpoint, 'POST', label );
+
+  const result = await callApi(endpoint, 'POST', label);
   console.log(`📞 ✅ API RESPONSE RECEIVED:`, result);
-  
+
   return result;
 };
 
@@ -489,5 +528,7 @@ export const logout = (): void => {
   localStorage.removeItem('memoapp_access_token');
   localStorage.removeItem('memoapp_token_timestamp');
   localStorage.removeItem('memoapp_auth_data');
+  localStorage.removeItem('memo_pro');
+  window.dispatchEvent(new Event('memo_pro_updated'));
   console.log('🔒 User logged out');
 };

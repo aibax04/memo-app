@@ -32,20 +32,44 @@ DEFAULT_TEMPLATES = [
         "speaker_diarization": "Label the sales representative and the prospect/customer. If multiple people are on the customer side, identify their roles.",
     },
     {
-        "title": "Sprint Standup",
-        "description": "Quick daily standup format. Captures what was done, what's planned, and any blockers for each team member.",
-        "transcription_prompt": "Transcribe the standup meeting. Focus on capturing each person's update clearly and concisely.",
-        "summary_prompt": "Summarise each participant's standup update in three categories: Yesterday's accomplishments, Today's plan, and Blockers. Format as a structured list per participant.",
-        "key_points_prompt": ["Completed Yesterday", "Planned Today", "Blockers & Dependencies", "Sprint Risks"],
-        "speaker_diarization": "Identify each team member by name. List their individual updates separately.",
+        "title": "Technical Specification",
+        "description": "Deep dive into technical requirements, architecture, and implementation details. Ideal for engineering and product syncs.",
+        "transcription_prompt": "Transcribe the technical discussion with high precision for terminology, variable names, and architectural concepts. Maintain context for complex logic.",
+        "summary_prompt": "Generate a technical briefing: identify the core problem being solved, list specific architectural decisions, detail security/performance considerations, and map out the implementation roadmap with technical dependencies.",
+        "key_points_prompt": ["Problem Statement", "Architectural Decisions", "Technical Requirements", "Implementation Plan", "Performance & Security", "Dependencies & Risks", "API/Schema Changes"],
+        "speaker_diarization": "Identify lead architects, developers, and product owners. Group technical feedback by domain expertise.",
     },
     {
-        "title": "Client Review / QBR",
-        "description": "Quarterly Business Review template. Tracks deliverables, satisfaction, upcoming renewals, and strategic priorities.",
-        "transcription_prompt": "Transcribe the client review meeting with focus on performance discussions, feedback, and strategic planning topics.",
-        "summary_prompt": "Provide a structured QBR summary including: account health assessment, key achievements reviewed, client feedback and satisfaction level, upcoming deliverables and timelines, renewal/expansion opportunities, and risk areas.",
-        "key_points_prompt": ["Account Health", "Key Achievements", "Client Feedback", "Upcoming Deliverables", "Renewal Discussion", "Expansion Opportunities", "Risk Areas"],
-        "speaker_diarization": "Identify the internal team members and the client-side participants. Note their titles when mentioned.",
+        "title": "Executive Briefing",
+        "description": "High-level strategic summary for leadership. Focuses on ROI, KPIs, and major milestones.",
+        "transcription_prompt": "Transcribe the meeting with focus on strategic goals, financial impact, and major organizational decisions. Filter out low-level operational noise.",
+        "summary_prompt": "Provide an executive-level summary: highlight the 3 most important strategic takeaways, quantify impacts where possible, list major approvals granted, and specify high-level next steps with assigned owners.",
+        "key_points_prompt": ["Strategic Objectives", "KPI Impact", "Major Announcements", "Approvals & Decisons", "Resource Allocation", "CEO/Leadership Directives", "Next Major Milestone"],
+        "speaker_diarization": "Identify executives and stakeholders by title. Focus on capturing directives and final decisions.",
+    },
+    {
+        "title": "Customer Success Sync",
+        "description": "Focus on account health, product adoption, and roadmap alignment. Designed for recurring client check-ins.",
+        "transcription_prompt": "Transcribe the client sync. Capture 'Voice of the Customer' feedback, feature requests, and any frustration or delight indicators.",
+        "summary_prompt": "Summarize account health: state current sentiment, list requested features with priority, document roadmap alignment discussions, and identify any churn risks or expansion opportunities.",
+        "key_points_prompt": ["Account Health Score", "Customer Sentiment", "Top Feature Requests", "Roadmap Alignment", "Upcoming Renewals", "Expansion Opportunities", "Action Items for CS"],
+        "speaker_diarization": "Label the CSM, Account Executive, and Client stakeholders. Identify the person raising each concern or request.",
+    },
+    {
+        "title": "Acknowledge (Awareness & Compliance)",
+        "description": "Specialized for meetings requiring clear acknowledgement of terms, safety briefings, or compliance steps.",
+        "transcription_prompt": "Focus on capturing explicit 'YES' or 'I AGREE' statements. Transcribe compliance steps and safety instructions with verbatim accuracy.",
+        "summary_prompt": "Generate a compliance report: list all items that were explicitly acknowledged, document any questions raised about terms, and note the time-stamps of formal agreements.",
+        "key_points_prompt": ["Terms Acknowledged", "Compliance Status", "Safety Protocols Discussed", "Verbal Agreements", "Follow-up Documentation", "Audit Trail Points"],
+        "speaker_diarization": "Clearly identify the presenter of terms and each individual respondent.",
+    },
+    {
+        "title": "Simplii (Quick Summary)",
+        "description": "Ultra-concise template for rapid review. Just the facts, no fluff.",
+        "transcription_prompt": "Transcribe for brevity. Focus on the core message while discarding filler words and repetitive phrases.",
+        "summary_prompt": "Provide a bulleted list of only the essential facts: Who, What, When, Where, and Why. Maximum 5 sentences total.",
+        "key_points_prompt": ["Main Takeaway", "Key Deadline", "Primary Owner", "Immediate Next Step"],
+        "speaker_diarization": "Group only by internal vs external speakers.",
     },
     {
         "title": "Product Brainstorm",
@@ -55,35 +79,23 @@ DEFAULT_TEMPLATES = [
         "key_points_prompt": ["Ideas Proposed", "Top Voted Ideas", "Feasibility Concerns", "User Impact", "Technical Complexity", "Next Steps"],
         "speaker_diarization": "Attribute each idea to the person who proposed it.",
     },
-    {
-        "title": "Interview Debrief",
-        "description": "Post-interview evaluation template. Captures candidate assessment, strengths, concerns, and hiring recommendation.",
-        "transcription_prompt": "Transcribe the interview debrief discussion. Pay special attention to assessments, scores, and specific examples mentioned.",
-        "summary_prompt": "Provide a structured interview debrief summary with: candidate name, role applied for, overall assessment, technical/skill evaluation, cultural fit assessment, strengths highlighted, concerns raised, and the hiring recommendation.",
-        "key_points_prompt": ["Overall Assessment", "Technical Skills", "Cultural Fit", "Strengths", "Concerns", "Hiring Recommendation", "Compensation Discussion"],
-        "speaker_diarization": "Identify the interviewers and their specific feedback.",
-    },
-    {
-        "title": "Project Kickoff",
-        "description": "New project kickoff meeting template. Captures scope, milestones, roles, and success criteria.",
-        "transcription_prompt": "Transcribe the project kickoff meeting with focus on scope definitions, role assignments, and milestone discussions.",
-        "summary_prompt": "Summarise the project kickoff covering: project objectives and scope, team roles and responsibilities, key milestones and deadlines, success criteria, risks identified, and communication plan.",
-        "key_points_prompt": ["Project Objectives", "Scope & Deliverables", "Team Roles", "Milestones & Timeline", "Success Criteria", "Identified Risks", "Communication Plan"],
-        "speaker_diarization": "Identify the project manager, stakeholders, and team leads. Map each person to their assigned responsibilities.",
-    },
-    {
-        "title": "One-on-One",
-        "description": "Manager-report one-on-one template. Tracks goals, feedback, career development, and support needs.",
-        "transcription_prompt": "Transcribe the one-on-one meeting. Capture both the manager's and the report's perspectives distinctly.",
-        "summary_prompt": "Summarise the one-on-one meeting including: progress on current goals, feedback shared (both directions), career development topics discussed, blockers and support needed, and agreed action items.",
-        "key_points_prompt": ["Goal Progress", "Feedback Given", "Feedback Received", "Career Development", "Blockers & Support Needed", "Action Items", "Wellbeing Check"],
-        "speaker_diarization": "Identify the manager and the direct report. Clearly separate their contributions.",
-    },
 ]
-
 
 def seed_templates():
     """Seed default templates into the database if they don't already exist."""
+    from database.connection import engine
+    from database.base import Base
+    import api.models.user
+    import api.models.template
+    import api.models.meeting
+    import api.models.speaker_profile
+    import api.models.chart
+    import api.models.dashboard
+    
+    # Create tables if they don't exist
+    print("Creating tables if they don't exist...")
+    Base.metadata.create_all(bind=engine)
+    
     db = SessionLocal()
     try:
         existing_count = db.query(Template).filter(Template.created_by.is_(None)).count()

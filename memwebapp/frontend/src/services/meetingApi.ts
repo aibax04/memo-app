@@ -108,6 +108,30 @@ export const reprocessMeeting = async (meetingId: string): Promise<{ status: str
     return result;
 };
 
+// Rename a speaker within a meeting
+export const renameSpeaker = async (meetingId: string, oldSpeakerName: string, newSpeakerName: string): Promise<{ status: string; message: string } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/${meetingId}/rename-speaker`, 'POST', {
+        old_speaker_name: oldSpeakerName,
+        new_speaker_name: newSpeakerName
+    });
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result;
+};
+
+// Merge multiple speakers into a single target speaker
+export const mergeSpeakers = async (meetingId: string, targetSpeaker: string, sourceSpeakers: string[]): Promise<{ status: string; message: string } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/${meetingId}/merge-speakers`, 'POST', {
+        target_speaker: targetSpeaker,
+        source_speakers: sourceSpeakers
+    });
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result;
+};
+
 // Update a meeting
 export const updateMeeting = async (meetingId: string, updates: Partial<Meeting>): Promise<Meeting | { error: string }> => {
     const result = await callApi(`${API_PREFIX}/meetings/${meetingId}`, 'PUT', updates);

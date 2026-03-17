@@ -5,7 +5,7 @@ from database.connection import get_db
 from api.services.auth_service import get_current_user
 from api.models.user import User
 from api.models.meeting import MeetingRecord, TranscriptionStatus
-from api.schemas.meeting import MeetingRecordResponse, MeetingRecordUpdate, MeetingRecordCreate, PaginatedMeetingsResponse
+from api.schemas.meeting import MeetingRecordResponse, MeetingRecordUpdate, MeetingRecordCreate, PaginatedMeetingsResponse, SpeakerNameUpdate, SpeakerMergeUpdate
 from api.services import meeting_service
 from api.services.ai_suggestion_service import ai_suggestion_service
 from api.services.s3_service import s3_service
@@ -310,6 +310,8 @@ async def suggest_description_for_audio(
                 pass
 
 
+from api.models.pro_subscription import ProSubscription
+
 @router.post("/", response_model=MeetingRecordResponse, status_code=status.HTTP_201_CREATED)
 async def create_meeting(
     title: str = Form(...),
@@ -326,6 +328,19 @@ async def create_meeting(
     Create a new meeting record with mobile mic audio processing
     """
     try:
+        # Check pro subscription
+        pro_sub = db.query(ProSubscription).filter(
+            ProSubscription.user_id == current_user.id,
+            ProSubscription.is_active == True
+        ).first()
+
+        user_meetings_count = db.query(MeetingRecord).filter(MeetingRecord.user_id == current_user.id).count()
+        if not pro_sub and user_meetings_count >= 10:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You have reached the maximum allowed 10 recordings for your trial period. Please contact support to unlock more recordings."
+            )
+
         logger.info("📋 REQUEST FORM DATA DEBUG:")
         logger.info(f"   Title form data: {repr(title)}")
         logger.info(f"   Description form data: {repr(description)}")
@@ -749,6 +764,141 @@ def delete_meeting(
         raise HTTPException(status_code=500, detail="Failed to delete meeting")
         
     return {"status": "success", "message": "Meeting deleted"}
+
+@router.post("/{meeting_id}/rename-speaker", response_model=dict)
+def rename_speaker(
+    meeting_id: uuid.UUID,
+    update: SpeakerNameUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Rename a speaker throughout a meeting's transcription and participants list.
+    """
+    # Verify ownership
+    db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
+    if db_meeting is None:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    old_name = update.old_speaker_name
+    new_name = update.new_speaker_name
+
+    # 1. Update transcription segments
+    if db_meeting.transcription:
+        # Check if it's already a list or a JSON string
+        import json
+        transcription = db_meeting.transcription
+        if isinstance(transcription, str):
+            transcription = json.loads(transcription)
+        
+        updated_transcription = []
+        for segment in transcription:
+            if segment.get("speaker") == old_name:
+                segment["speaker"] = new_name
+            updated_transcription.append(segment)
+        
+        db_meeting.transcription = updated_transcription
+
+    # 2. Update participants list
+    if db_meeting.participants:
+        # Check if it's already a list or a JSON string
+        participants = db_meeting.participants
+        if isinstance(participants, str):
+            try:
+                import json
+                participants = json.loads(participants)
+            except:
+                # Handle comma separated if needed but should be JSON now
+                import json
+                participants = [p.strip() for p in participants.split(",")]
+
+        updated_participants = []
+        found = False
+        for p in participants:
+            if p == old_name:
+                updated_participants.append(new_name)
+                found = True
+            else:
+                updated_participants.append(p)
+        
+        if not found and new_name not in updated_participants:
+             # If old name wasn't in list but we renamed it in transcript, 
+             # maybe we should add it? Or at least ensure it's unique.
+             pass
+             
+        db_meeting.participants = updated_participants
+
+    db.commit()
+    db.refresh(db_meeting)
+    
+    return {"status": "success", "message": f"Renamed speaker '{old_name}' to '{new_name}'"}
+
+@router.post("/{meeting_id}/merge-speakers", response_model=dict)
+def merge_speakers(
+    meeting_id: uuid.UUID,
+    update: SpeakerMergeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Merge multiple speakers into a single target speaker.
+    """
+    # Verify ownership
+    db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
+    if db_meeting is None:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    target = update.target_speaker
+    sources = set(update.source_speakers)
+
+    # 1. Update transcription segments
+    if db_meeting.transcription:
+        # Check if it's already a list or a JSON string
+        import json
+        transcription = db_meeting.transcription
+        if isinstance(transcription, str):
+            transcription = json.loads(transcription)
+        
+        updated_transcription = []
+        for segment in transcription:
+            if segment.get("speaker") in sources:
+                segment["speaker"] = target
+            updated_transcription.append(segment)
+        
+        db_meeting.transcription = updated_transcription
+
+    # 2. Update participants list
+    if db_meeting.participants:
+        # Check if it's already a list or a JSON string
+        participants = db_meeting.participants
+        if isinstance(participants, str):
+            try:
+                import json
+                participants = json.loads(participants)
+            except:
+                participants = [p.strip() for p in participants.split(",")]
+
+        updated_participants = set(participants)
+        
+        # Check if any sources are in the list
+        sources_in_participants = any(s in updated_participants for s in sources)
+        
+        # Remove sources
+        for s in sources:
+            if s in updated_participants:
+                updated_participants.remove(s)
+                
+        # If any source was present, make sure target is in the list
+        if sources_in_participants:
+            updated_participants.add(target)
+             
+        db_meeting.participants = list(updated_participants)
+
+    db.commit()
+    db.refresh(db_meeting)
+    
+    return {"status": "success", "message": f"Merged speakers into '{target}'"}
+
 
 @router.post("/{meeting_id}/reprocess")
 async def reprocess_meeting(

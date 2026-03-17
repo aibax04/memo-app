@@ -1,12 +1,12 @@
 
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Shield } from "lucide-react";
 import { loginUser } from "@/services/api";
 
 const Login: React.FC = () => {
@@ -88,9 +88,9 @@ const Login: React.FC = () => {
             <Label htmlFor="password" className="text-sm font-semibold text-slate-700 group-focus-within:text-[#1B2BB8] transition-colors">
               Password
             </Label>
-            <Link to="/forgot-password" className="text-xs text-[#1B2BB8] hover:text-blue-800 transition-colors">
+            <span className="text-xs text-[#1B2BB8] hover:text-blue-800 transition-colors cursor-pointer">
               Forgot?
-            </Link>
+            </span>
           </div>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-[#1B2BB8] transition-colors z-10" />
@@ -123,12 +123,13 @@ const Login: React.FC = () => {
       </form>
 
       <div className="mt-8 text-center">
-        <p className="text-slate-600 text-sm">
-          New to Memo App?{" "}
-          <Link to="/signup" className="text-[#1B2BB8] font-bold hover:text-blue-800 hover:underline transition-colors">
-            Create an account
-          </Link>
-        </p>
+        <button
+          onClick={() => navigate("/admin")}
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors font-medium"
+        >
+          <Shield className="w-3.5 h-3.5" />
+          Admin Panel
+        </button>
       </div>
     </div>
   );

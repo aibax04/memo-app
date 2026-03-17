@@ -82,7 +82,7 @@ class AudioProcessor:
                     return prompt
             
             # Ultimate fallback if no template found
-            return """**IMPORTANT: Transcribe this meeting audio in the original language spoken.**
+            return """**IMPORTANT: Transcribe this meeting audio. The output MUST be written using the English alphabet/script only. Do not use Hindi script (Devanagari) or any other non-English characters. If the original audio is in Hindi, either transcribe it in Hinglish or translate it to English.**
 
 **IMPORTANT: Transcribe this meeting audio.**
 
@@ -121,7 +121,7 @@ Only return the pure JSON array inside triple backticks and nothing else."""
         except Exception as e:
             logger.error(f"Error getting transcription prompt from database: {e}")
             # Fallback to hardcoded default
-            return """**IMPORTANT: Transcribe this audio in the original language spoken.**
+            return """**IMPORTANT: Transcribe this audio. The output MUST be written using the English alphabet/script only. Do not use Hindi script (Devanagari) or any other non-English characters. If the original audio is in Hindi, either transcribe it in Hinglish or translate it to English.**
 
 **IMPORTANT: Transcribe this mobile mic audio.**
 

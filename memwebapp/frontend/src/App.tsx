@@ -9,8 +9,8 @@ import MeetingDetail from './pages/MeetingDetail';
 import Templates from './pages/Templates';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
-import SignUp from './pages/SignUp';
 import Home from './pages/Home';
+import AdminDashboard from './pages/AdminDashboard';
 import AuthLayout from './components/AuthLayout';
 import ProtectedLayout from './components/ProtectedLayout';
 
@@ -18,7 +18,7 @@ const App = () => {
   return (
     <Router>
       <AuthProvider>
-        <Toaster position="top-center" />
+        <Toaster position="top-center" closeButton />
         <div className="min-h-screen bg-[#F3F3F3]">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -29,11 +29,9 @@ const App = () => {
                 <Login />
               </AuthLayout>
             } />
-            <Route path="/signup" element={
-              <AuthLayout>
-                <SignUp />
-              </AuthLayout>
-            } />
+
+            {/* Admin Route (standalone auth) */}
+            <Route path="/admin" element={<AdminDashboard />} />
 
             {/* Protected Routes */}
             <Route element={<ProtectedLayout />}>

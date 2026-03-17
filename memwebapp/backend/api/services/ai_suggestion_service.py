@@ -108,13 +108,13 @@ class AISuggestionService:
                 logger.info(f"✅ Uploaded: {audio_file.name}")
                 
                 # Create prompt for title suggestion
-                prompt = """Listen to this audio recording and suggest a concise, professional meeting title (maximum 6-8 words).
+                prompt = """Listen to this audio recording and suggest an extremely short meeting title (MAXIMUM 4 CHARACTERS).
 
 The title should:
-- Capture the main topic or purpose of the discussion
-- Be clear and descriptive
-- Use title case
-- Be professional and business-appropriate
+- Be strictly 4 characters or fewer (including spaces)
+- Use an acronym if needed
+- Capture the essence of the meeting in 4 characters or fewer
+- Be professional
 
 Return ONLY the suggested title, nothing else. No quotes, no explanations."""
                 
@@ -130,8 +130,13 @@ Return ONLY the suggested title, nothing else. No quotes, no explanations."""
                 
                 suggested_title = response.text.strip().strip('"').strip("'")
                 
-                if not suggested_title or len(suggested_title) < 3:
-                    raise Exception("AI returned invalid or too short title")
+                # Enforce 4 character limit
+                if suggested_title and len(suggested_title) > 4:
+                    logger.info(f"✂️ Truncating title from '{suggested_title}' to '{suggested_title[:4]}'")
+                    suggested_title = suggested_title[:4]
+                
+                if not suggested_title:
+                    raise Exception("AI returned empty title after processing")
                 
                 logger.info(f"✅ Title suggested successfully: '{suggested_title}'")
                 

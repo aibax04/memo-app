@@ -91,6 +91,9 @@ function initElements() {
   elements.uploadBtn = document.getElementById('uploadBtn');
   elements.gmailBtn = document.getElementById('gmailBtn');
   elements.newRecordingBtn = document.getElementById('newRecordingBtn');
+  elements.helpLink = document.getElementById('helpLink');
+  elements.featuresView = document.getElementById('featuresView');
+  elements.closeFeaturesBtn = document.getElementById('closeFeaturesBtn');
 }
 
 // ============================================================================
@@ -201,13 +204,28 @@ const UI = {
   showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.textContent = message;
+
+    const content = document.createElement('span');
+    content.textContent = message;
+    toast.appendChild(content);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    };
+    toast.appendChild(closeBtn);
+
     document.body.appendChild(toast);
 
     setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
+      if (toast.parentElement) {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }
     }, CONFIG.UI.TOAST_DURATION);
   },
 
@@ -554,6 +572,7 @@ async function startRecording() {
     const isMeetingPage = tab.url?.includes('meet.google.com') ||
       tab.url?.includes('teams.microsoft.com') ||
       tab.url?.includes('teams.live.com') ||
+      tab.url?.includes('teams.cloud.microsoft') ||
       tab.url?.includes('zoom.us') ||
       tab.url?.includes('zoom.com');
 
@@ -689,7 +708,7 @@ async function uploadRecording() {
 
     const templateId = elements.postTemplateSelect?.value || '';
     const meetingDetails = {
-      title: elements.postMeetingTitle?.value?.trim() || 'Untitled Recording',
+      title: elements.postMeetingTitle?.value?.trim() || 'Meeting',
       templateId
     };
 
@@ -818,7 +837,7 @@ async function checkCurrentTab() {
       updatePlatformBadge('google_meet');
       if (elements.statusSubtitle) elements.statusSubtitle.textContent = 'Google Meet detected';
       await fetchMeetingTitle(tab.id);
-    } else if (tab.url.includes('teams.microsoft.com') || tab.url.includes('teams.live.com')) {
+    } else if (tab.url.includes('teams.microsoft.com') || tab.url.includes('teams.live.com') || tab.url.includes('teams.cloud.microsoft')) {
       state.currentPlatform = 'teams';
       updatePlatformBadge('teams');
       if (elements.statusSubtitle) elements.statusSubtitle.textContent = 'Microsoft Teams detected';
@@ -980,6 +999,15 @@ function setupEventListeners() {
   elements.gmailBtn?.addEventListener('click', exportToGmail);
   elements.newRecordingBtn?.addEventListener('click', startNewRecording);
 
+  elements.helpLink?.addEventListener('click', (e) => {
+    e.preventDefault();
+    elements.featuresView?.classList.remove('hidden');
+  });
+
+  elements.closeFeaturesBtn?.addEventListener('click', () => {
+    elements.featuresView?.classList.add('hidden');
+  });
+
   // Save template preference when changed
   elements.templateSelect?.addEventListener('change', (e) => {
     if (e.target.value) {
@@ -992,6 +1020,22 @@ function setupEventListeners() {
       saveTemplatePreference(e.target.value);
     }
   });
+
+  // This function is now deprecated in favor of on-blur enforcement
+  const enforceWordLimit = (inputElement, maxWords) => {
+    // No-op - we'll use blur instead for better UX
+  };
+
+  if (elements.meetingTitle) {
+    elements.meetingTitle.addEventListener('blur', () => {
+      elements.meetingTitle.value = elements.meetingTitle.value.trim().split(/\s+/).slice(0, 12).join(' ');
+    });
+  }
+  if (elements.postMeetingTitle) {
+    elements.postMeetingTitle.addEventListener('blur', () => {
+      elements.postMeetingTitle.value = elements.postMeetingTitle.value.trim().split(/\s+/).slice(0, 12).join(' ');
+    });
+  }
 }
 
 // ============================================================================

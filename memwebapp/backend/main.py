@@ -10,7 +10,7 @@ import logging
 from config.settings import settings
 from database.connection import engine
 from database.base import Base
-from api.routers import meetings, auth, microsoft_auth, google_auth, templates, crm, stream, basic_auth, dashboards, charts, generation
+from api.routers import meetings, auth, microsoft_auth, google_auth, templates, crm, stream, basic_auth, dashboards, charts, generation, recordings, chatbot, admin
 
 
 from api.models.user import User  # Import User model to create table
@@ -18,6 +18,7 @@ from api.models.meeting import MeetingRecord  # Import MeetingRecord model to cr
 from api.models.template import Template  # Import Template model to create table
 from api.models.dashboard import Dashboard  # Import Dashboard model to create table
 from api.models.chart import Chart  # Import Chart model to create table
+from api.models.pro_subscription import ProSubscription  # Import ProSubscription model to create table
 from api.services.background_transcription_service import background_service
 from api.services.watchdog_service import watchdog_service
 
@@ -206,17 +207,25 @@ include_router_with_prefixes(app, meetings.router, ["/api/v1/mobile", "/api/v1/w
 include_router_with_prefixes(app, auth.router, ["/api/v1/mobile", "/api/v1/web"])
 include_router_with_prefixes(app, templates.router, ["/api/v1/mobile", "/api/v1/web"])
 include_router_with_prefixes(app, crm.router, ["/api/v1"])
+app.include_router(recordings.router, prefix="/api/v1")
+include_router_with_prefixes(app, chatbot.router, ["/api/v1"])
 # Stream router (Replaces WebSocket)
 include_router_with_prefixes(app, stream.router, ["/api/v1/mobile", "/api/v1/web"])
 
 # Basic Auth router for /token and /users/ (Compatibility with legacy frontend calls)
+# Also expose it under /api/v1/mobile + /api/v1/web so deployments that only proxy /api/v1/*
+# still have access to login + Pro endpoints (without changing existing behavior).
 app.include_router(basic_auth.router)
+include_router_with_prefixes(app, basic_auth.router, ["/api/v1/mobile", "/api/v1/web"])
 
 # Dashboards & Charts routers (Root level to match frontend expectations)
 app.include_router(dashboards.router)
 app.include_router(dashboards.filters_router)  # /filters endpoint for DataSidebar
 app.include_router(charts.router)
 app.include_router(generation.router)
+
+# Admin dashboard router
+app.include_router(admin.router)
 
 
 

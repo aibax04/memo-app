@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getProStatus } from "@/services/api";
 
 type User = {
   id: string;
@@ -9,6 +10,7 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
+  isPro: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -41,6 +43,7 @@ const isTokenExpired = (): boolean => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isPro, setIsPro] = useState<boolean>(localStorage.getItem("memo_pro") === "true");
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -49,44 +52,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem("dashboardUser");
     const accessToken = localStorage.getItem("memoapp_access_token");
 
-    // Check if token has expired
-    if (accessToken && isTokenExpired()) {
-      console.log("🔒 Token has expired, logging out user");
+    // If there's a stored user but no access token, or the token has expired,
+    // clear stale data and redirect to login (prevents 403 on production)
+    if (storedUser && (!accessToken || isTokenExpired())) {
+      console.log("🔒 Stored user found but access token is missing or expired — clearing session");
       localStorage.removeItem("memoapp_access_token");
       localStorage.removeItem("memoapp_token_timestamp");
       localStorage.removeItem("memoapp_auth_data");
       localStorage.removeItem("dashboardUser");
+      localStorage.removeItem("memo_pro");
       setUser(null);
+      setIsPro(false);
       setIsLoading(false);
       navigate("/login");
       return;
     }
 
-    if (storedUser) {
+    if (storedUser && accessToken) {
       const parsedUser = JSON.parse(storedUser);
       console.log("🔄 Restoring user from localStorage:", parsedUser.email);
       setUser(parsedUser);
+      // Sync pro status immediately on load
+      checkProStatus();
     }
     setIsLoading(false);
   }, [navigate]);
 
+  // Handle Pro status sync with server
+  const checkProStatus = async () => {
+    if (!localStorage.getItem("memoapp_access_token")) return;
+    try {
+      const res = await getProStatus();
+      if (res && res.is_pro !== undefined) {
+        const current = localStorage.getItem("memo_pro") === "true";
+        if (res.is_pro !== current) {
+          console.log(`✨ Pro status sync: ${current} -> ${res.is_pro}`);
+          localStorage.setItem("memo_pro", res.is_pro ? "true" : "false");
+          setIsPro(res.is_pro);
+          window.dispatchEvent(new Event("memo_pro_updated"));
+        }
+      }
+    } catch (e) {
+      console.warn("Pro status sync failed", e);
+    }
+  };
+
+  // Poll pro status every 30 seconds when logged in
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(checkProStatus, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Listen for local pro updates
+  useEffect(() => {
+    const handleUpdate = () => {
+      setIsPro(localStorage.getItem("memo_pro") === "true");
+    };
+    window.addEventListener("memo_pro_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("memo_pro_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
+
   const login = async (email: string, password: string) => {
     setIsLoading(true);
 
-    // Important: First check if we already have a user in localStorage
-    // This would happen if the API login was successful
     const storedUser = localStorage.getItem("dashboardUser");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       if (parsedUser.email === email) {
-        console.log("👤 User already authenticated via API, skipping Supabase authentication");
         setUser(parsedUser);
+        setIsPro(localStorage.getItem("memo_pro") === "true");
         setIsLoading(false);
         return;
       }
     }
 
-    // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const foundUser = MOCK_USERS.find(
@@ -94,12 +139,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     if (foundUser) {
-      console.log("👤 User authenticated via mock users");
       const { password, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
       localStorage.setItem("dashboardUser", JSON.stringify(userWithoutPassword));
+      setIsPro(localStorage.getItem("memo_pro") === "true");
 
-      // Set token timestamp and dummy auth data for mock users to sync with extension
       const authData = {
         token: 'mock_token_' + foundUser.id,
         user: userWithoutPassword
@@ -108,10 +152,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!localStorage.getItem('memoapp_token_timestamp')) {
         localStorage.setItem('memoapp_token_timestamp', Date.now().toString());
-        console.log("⏰ Setting token timestamp for 7-day expiry");
       }
     } else {
-      console.error("❌ Invalid email or password for mock user");
       throw new Error("Invalid email or password");
     }
 
@@ -119,16 +161,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    console.log("👋 Logging out user:", user?.email);
     setUser(null);
+    setIsPro(false);
     localStorage.removeItem("dashboardUser");
     localStorage.removeItem("memoapp_access_token");
     localStorage.removeItem("memoapp_token_timestamp");
     localStorage.removeItem("memoapp_auth_data");
+    localStorage.removeItem("memo_pro");
+    window.dispatchEvent(new Event("memo_pro_updated"));
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isPro, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

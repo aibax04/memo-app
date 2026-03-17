@@ -294,12 +294,15 @@ const Templates: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-4">
                     <div className="relative group min-w-0">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" />
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none z-20">
+                            <Search className="h-5 w-5 text-slate-400 group-focus-within:text-[#1B2BB8] transition-colors" />
+                            <div className="h-4 w-[1px] bg-slate-200 group-focus-within:bg-[#1B2BB8]/30 transition-colors" />
+                        </div>
                         <Input
                             placeholder="Search templates..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-12 pr-4 w-full md:w-[260px] h-12 bg-white/80 backdrop-blur-sm border-slate-200 rounded-2xl focus:ring-blue-500/10 shadow-sm transition-all focus:bg-white focus:shadow-md"
+                            className="pl-14 pr-4 w-full md:w-[280px] h-12 bg-white/80 backdrop-blur-sm border-slate-200 rounded-2xl focus:ring-[#1B2BB8]/20 focus:border-[#1B2BB8] shadow-lg shadow-blue-900/5 transition-all focus:bg-white placeholder:text-slate-400 font-medium"
                         />
                     </div>
 

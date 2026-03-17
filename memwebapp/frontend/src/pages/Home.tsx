@@ -57,9 +57,9 @@ const Home: React.FC = () => {
                 </div>
 
                 <nav className="hidden md:flex gap-8 items-center mr-auto ml-16">
-                    <a href="#how-it-works" className="text-sm font-bold text-slate-600 hover:text-[#1B2BB8] transition-colors">How it Works</a>
-                    <a href="#features" className="text-sm font-bold text-slate-600 hover:text-[#1B2BB8] transition-colors">Features</a>
-                    <a href="#faq" className="text-sm font-bold text-slate-600 hover:text-[#1B2BB8] transition-colors">FAQ</a>
+                    <a href="#how-it-works" className="text-sm font-medium text-slate-600 hover:text-[#1B2BB8] transition-colors uppercase tracking-wider">How it Works</a>
+                    <a href="#features" className="text-sm font-medium text-slate-600 hover:text-[#1B2BB8] transition-colors uppercase tracking-wider">Features</a>
+                    <a href="#faq" className="text-sm font-medium text-slate-600 hover:text-[#1B2BB8] transition-colors uppercase tracking-wider">FAQ</a>
                 </nav>
 
                 <div className="flex gap-4 items-center">
@@ -97,29 +97,24 @@ const Home: React.FC = () => {
                         <span>The Future of Professional Meetings</span>
                     </div>
 
-                    <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[1] mb-8 drop-shadow-sm text-black">
+                    <h1 className="text-5xl md:text-8xl font-medium tracking-tight leading-[1] mb-10 drop-shadow-sm text-black">
                         Capture Intelligence <br />
-                        <span className="text-[#1B2BB8]">Automatically.</span>
+                        <span className="text-[#1B2BB8] font-['Caveat_Brush'] inline-block transform scale-[1.35] origin-center mt-3">Automatically.</span>
                     </h1>
 
-                    <p className="text-lg md:text-2xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed">
+                    <p className="text-lg md:text-2xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
                         Memo App transforms your conversation audio into structured, actionable intelligence. Perfect for sales teams, researchers, and project managers.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center flex-wrap">
+                    <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                         <Link to="/signup" className="w-full sm:w-auto">
-                            <Button className="w-full sm:w-auto bg-[#1B2BB8] hover:bg-blue-800 text-white h-16 px-10 rounded-2xl font-bold text-xl shadow-[0_4px_14px_0_rgba(27,43,184,0.39)] transition-all active:scale-95 group">
-                                Try for Free <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                            <Button className="w-full sm:w-auto bg-[#1B2BB8] hover:bg-blue-800 text-white h-16 px-10 rounded-2xl font-bold text-xl shadow-[0_4px_14px_0_rgba(27,43,184,0.39)] transition-all active:scale-95">
+                                Try for Free
                             </Button>
                         </Link>
-                        <a href="#how-it-works" className="w-full sm:w-auto">
-                            <Button variant="ghost" className="w-full sm:w-auto h-16 px-8 rounded-2xl font-bold text-slate-600 hover:text-black hover:bg-slate-100">
-                                See How it Works
-                            </Button>
-                        </a>
                         <a href="https://makememo.ai/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                            <Button className="w-full sm:w-auto h-16 px-10 rounded-2xl font-bold text-xl bg-white border-2 border-[#1B2BB8] text-[#1B2BB8] hover:bg-[#1B2BB8] hover:text-white transition-all active:scale-95 shadow-lg">
-                                Read More
+                            <Button className="w-full sm:w-auto h-16 px-10 rounded-2xl font-bold text-xl bg-white border-2 border-[#1B2BB8] text-[#1B2BB8] hover:bg-blue-50 transition-all active:scale-95 shadow-lg group flex items-center justify-center">
+                                <ArrowRight className="mr-2 h-6 w-6 transition-transform group-hover:translate-x-1" /> Know More
                             </Button>
                         </a>
                     </div>
@@ -160,7 +155,7 @@ const Home: React.FC = () => {
                             <CheckCircle className="h-6 w-6" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-tighter">Status</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Status</span>
                             <span className="text-sm font-bold">Synced to CRM</span>
                         </div>
                     </div>
@@ -171,8 +166,8 @@ const Home: React.FC = () => {
             <section id="how-it-works" className="relative z-10 py-32 px-6 bg-white overflow-hidden">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-24">
-                        <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-6">Simple, Powerful <span className="text-[#1B2BB8]">Workflow</span></h2>
-                        <p className="text-lg text-slate-500 max-w-2xl mx-auto">From raw audio to structured intelligence in three easy steps.</p>
+                        <h2 className="text-4xl md:text-6xl font-medium tracking-tight mb-6">Simple, Powerful <br /><span className="text-[#1B2BB8] font-['Caveat_Brush'] inline-block transform scale-[1.25] origin-center mt-2">Workflow</span></h2>
+                        <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">From raw audio to structured intelligence in three easy steps.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-16 relative">
@@ -182,27 +177,27 @@ const Home: React.FC = () => {
                         <motion.div {...fadeInUp} className="flex flex-col items-center text-center relative z-10">
                             <div className="h-24 w-24 rounded-[2rem] bg-blue-50 border-4 border-white shadow-xl flex items-center justify-center mb-8 relative">
                                 <Mic className="h-10 w-10 text-[#1B2BB8]" />
-                                <div className="absolute -top-2 -right-2 h-8 w-8 bg-[#1B2BB8] text-white rounded-full flex items-center justify-center font-black text-sm">1</div>
+                                <div className="absolute -top-2 -right-2 h-8 w-8 bg-[#1B2BB8] text-white rounded-full flex items-center justify-center font-bold text-sm">1</div>
                             </div>
-                            <h3 className="text-2xl font-black mb-4 tracking-tighter">Record</h3>
+                            <h3 className="text-2xl font-bold mb-4 tracking-tighter">Record</h3>
                             <p className="text-slate-500 leading-relaxed">Capture any conversation using our browser interface or mobile app. High-fidelity audio recording built-in.</p>
                         </motion.div>
 
                         <motion.div {...fadeInUp} transition={{ delay: 0.2 }} className="flex flex-col items-center text-center relative z-10">
                             <div className="h-24 w-24 rounded-[2rem] bg-indigo-50 border-4 border-white shadow-xl flex items-center justify-center mb-8 relative">
                                 <Brain className="h-10 w-10 text-[#1B2BB8]" />
-                                <div className="absolute -top-2 -right-2 h-8 w-8 bg-[#1B2BB8] text-white rounded-full flex items-center justify-center font-black text-sm">2</div>
+                                <div className="absolute -top-2 -right-2 h-8 w-8 bg-[#1B2BB8] text-white rounded-full flex items-center justify-center font-bold text-sm">2</div>
                             </div>
-                            <h3 className="text-2xl font-black mb-4 tracking-tighter">Intelligence</h3>
+                            <h3 className="text-2xl font-bold mb-4 tracking-tighter">Intelligence</h3>
                             <p className="text-slate-500 leading-relaxed">Our AI models transcribe and analyze for action items, sentiment, and technical details automatically.</p>
                         </motion.div>
 
                         <motion.div {...fadeInUp} transition={{ delay: 0.4 }} className="flex flex-col items-center text-center relative z-10">
                             <div className="h-24 w-24 rounded-[2rem] bg-emerald-50 border-4 border-white shadow-xl flex items-center justify-center mb-8 relative">
                                 <Database className="h-10 w-10 text-[#1B2BB8]" />
-                                <div className="absolute -top-2 -right-2 h-8 w-8 bg-[#1B2BB8] text-white rounded-full flex items-center justify-center font-black text-sm">3</div>
+                                <div className="absolute -top-2 -right-2 h-8 w-8 bg-[#1B2BB8] text-white rounded-full flex items-center justify-center font-bold text-sm">3</div>
                             </div>
-                            <h3 className="text-2xl font-black mb-4 tracking-tighter">Sync</h3>
+                            <h3 className="text-2xl font-bold mb-4 tracking-tighter">Sync</h3>
                             <p className="text-slate-500 leading-relaxed">Export structured data or sync directly to your CRM with our custom templates for every use-case.</p>
                         </motion.div>
                     </div>
@@ -214,8 +209,8 @@ const Home: React.FC = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
                         <div className="max-w-xl">
-                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-6 leading-tight">Packed with <br /><span className="text-[#1B2BB8]">Enterprise Power.</span></h2>
-                            <p className="text-lg text-slate-500">Everything you need to turn voices into value, without the manual effort.</p>
+                            <h2 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 leading-tight">Packed with <br /><span className="text-[#1B2BB8] font-['Caveat_Brush'] inline-block transform scale-[1.25] origin-left mt-1">Enterprise Power.</span></h2>
+                            <p className="text-lg text-slate-500 font-medium">Everything you need to turn voices into value, without the manual effort.</p>
                         </div>
                         <Link to="/signup">
                             <Button variant="outline" className="h-14 px-8 border-slate-300 hover:bg-white rounded-xl font-bold bg-white/50 backdrop-blur-sm">Explore All Features</Button>
@@ -264,7 +259,7 @@ const Home: React.FC = () => {
                                 <div className="h-16 w-16 rounded-2xl bg-[#F3F3F3] border border-slate-100 flex items-center justify-center mb-8 group-hover:bg-[#1B2BB8] group-hover:text-white transition-all duration-300">
                                     <span className="text-[#1B2BB8] group-hover:text-white transition-colors">{feature.icon}</span>
                                 </div>
-                                <h3 className="text-2xl font-black mb-4 tracking-tighter">{feature.title}</h3>
+                                <h3 className="text-2xl font-bold mb-4 tracking-tighter">{feature.title}</h3>
                                 <p className="text-slate-500 leading-relaxed text-sm md:text-base">{feature.desc}</p>
                             </motion.div>
                         ))}
@@ -276,30 +271,30 @@ const Home: React.FC = () => {
             <section id="faq" className="relative z-10 py-32 px-6 bg-white">
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Questions? <br /><span className="text-[#1B2BB8]">Answers.</span></h2>
+                        <h2 className="text-4xl md:text-5xl font-medium tracking-tight mb-4">Questions? <br /><span className="text-[#1B2BB8] font-['Caveat_Brush'] inline-block transform scale-[1.3] origin-center mt-2">Answers.</span></h2>
                     </div>
 
                     <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1" className="border-b-2 border-slate-100 py-4">
-                            <AccordionTrigger className="text-xl font-black tracking-tighter hover:no-underline hover:text-[#1B2BB8]">How accurate is the transcription?</AccordionTrigger>
+                            <AccordionTrigger className="text-xl font-bold tracking-tighter hover:no-underline hover:text-[#1B2BB8]">How accurate is the transcription?</AccordionTrigger>
                             <AccordionContent className="text-slate-500 text-lg pt-4 leading-relaxed">
                                 Extremely. We use the latest Whisper models enhanced with professional terminology libraries, achieving over 98% accuracy in quiet environments.
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2" className="border-b-2 border-slate-100 py-4">
-                            <AccordionTrigger className="text-xl font-black tracking-tighter hover:no-underline hover:text-[#1B2BB8]">Which languages do you support?</AccordionTrigger>
+                            <AccordionTrigger className="text-xl font-bold tracking-tighter hover:no-underline hover:text-[#1B2BB8]">Which languages do you support?</AccordionTrigger>
                             <AccordionContent className="text-slate-500 text-lg pt-4 leading-relaxed">
                                 We currently support 40+ languages with automatic language detection, so you don't even need to tell the app which language is being spoken.
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3" className="border-b-2 border-slate-100 py-4">
-                            <AccordionTrigger className="text-xl font-black tracking-tighter hover:no-underline hover:text-[#1B2BB8]">Can I export the data for my CRM?</AccordionTrigger>
+                            <AccordionTrigger className="text-xl font-bold tracking-tighter hover:no-underline hover:text-[#1B2BB8]">Can I export the data for my CRM?</AccordionTrigger>
                             <AccordionContent className="text-slate-500 text-lg pt-4 leading-relaxed">
                                 Yes. You can copy the AI-generated structured data directly or use one of our templates designed for Salesforce, HubSpot, and Pipedrive.
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-4" className="border-b-2 border-slate-100 py-4">
-                            <AccordionTrigger className="text-xl font-black tracking-tighter hover:no-underline hover:text-[#1B2BB8]">Is my data used for AI training?</AccordionTrigger>
+                            <AccordionTrigger className="text-xl font-bold tracking-tighter hover:no-underline hover:text-[#1B2BB8]">Is my data used for AI training?</AccordionTrigger>
                             <AccordionContent className="text-slate-500 text-lg pt-4 leading-relaxed">
                                 No. We use API calls with zero data retention for training. Your meetings remain private and yours alone.
                             </AccordionContent>
@@ -309,7 +304,7 @@ const Home: React.FC = () => {
             </section>
 
             {/* Final CTA Section */}
-            <section className="relative z-10 py-24 px-6 md:py-40">
+            <section className="relative z-10 pt-28 pb-24 px-6 md:pt-44 md:pb-40 scroll-mt-24" id="cta">
                 <div className="max-w-6xl mx-auto bg-[#1B2BB8] rounded-[3rem] p-12 md:p-24 text-center overflow-hidden relative">
                     {/* Background decorations */}
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/20 blur-[80px]"></div>
@@ -322,21 +317,21 @@ const Home: React.FC = () => {
                         viewport={{ once: true }}
                         className="relative z-10"
                     >
-                        <h2 className="text-4xl md:text-7xl font-black text-white tracking-tighter mb-8 leading-[1.1]">
+                        <h2 className="text-4xl md:text-7xl font-bold text-white tracking-tighter mb-12 leading-[1.1]">
                             Ready to stop taking notes and <br />
-                            <span className="opacity-70 italic">start taking action?</span>
+                            <span className="text-blue-200 font-['Caveat_Brush'] inline-block transform scale-[1.2] origin-center mt-4">start taking action?</span>
                         </h2>
                         <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-2xl mx-auto font-medium">
                             Join 5,000+ professionals using Memo Intelligence to stay focused on the client, not the notepad.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link to="/signup" className="w-full sm:w-auto">
-                                <Button className="w-full sm:w-auto bg-white text-[#1B2BB8] hover:bg-blue-50 h-16 px-12 rounded-2xl font-black text-xl transition-all shadow-xl active:scale-95">
+                                <Button className="w-full sm:w-auto bg-white text-[#1B2BB8] hover:bg-blue-50 h-16 px-12 rounded-2xl font-bold text-xl transition-all shadow-xl active:scale-95 shadow-blue-900/40">
                                     Get Started Free
                                 </Button>
                             </Link>
                             <Link to="/login" className="w-full sm:w-auto">
-                                <Button variant="outline" className="w-full sm:w-auto h-16 px-12 rounded-2xl font-black text-xl border-blue-400 text-white hover:bg-white/10 transition-all">
+                                <Button className="w-full sm:w-auto h-16 px-12 rounded-2xl font-bold text-xl border-2 border-white/30 text-white bg-white/5 hover:bg-white/10 transition-all active:scale-95">
                                     Sign In
                                 </Button>
                             </Link>
@@ -345,68 +340,6 @@ const Home: React.FC = () => {
                 </div>
             </section>
 
-            {/* Simple Detailed Footer */}
-            <footer className="relative z-10 py-20 px-6 border-t border-slate-200 bg-white">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
-                    <div className="col-span-1 md:col-span-1">
-                        <div className="flex items-center gap-3 mb-6">
-                            <img
-                                src="/lovable-uploads/image.png"
-                                alt="Memo App Logo"
-                                className="h-12 w-auto object-contain"
-                            />
-                        </div>
-                        <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                            Turning voices into actionable intelligence, structured for the modern workspace.
-                        </p>
-                        <div className="flex gap-4">
-                            <div className="h-4 w-4 rounded-full bg-slate-200"></div>
-                            <div className="h-4 w-4 rounded-full bg-slate-200"></div>
-                            <div className="h-4 w-4 rounded-full bg-slate-200"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4 className="font-black text-sm uppercase tracking-widest mb-6">Product</h4>
-                        <ul className="space-y-4 text-sm text-slate-500 font-bold">
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Pricing</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Integrations</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Enterprise</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Changelog</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="font-black text-sm uppercase tracking-widest mb-6">Company</h4>
-                        <ul className="space-y-4 text-sm text-slate-500 font-bold">
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">About</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Careers</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Privacy</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Terms</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="font-black text-sm uppercase tracking-widest mb-6">Support</h4>
-                        <ul className="space-y-4 text-sm text-slate-500 font-bold">
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Help Center</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Contact Us</a></li>
-                            <li><a href="#" className="hover:text-[#1B2BB8] transition-colors">Status</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-                        &copy; {new Date().getFullYear()} Memo Intelligence Inc. All rights reserved.
-                    </p>
-                    <div className="flex gap-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        <a href="#" className="hover:text-slate-900 transition-colors">Twitter</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">LinkedIn</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">Support</a>
-                    </div>
-                </div>
-            </footer>
         </div>
     );
 };

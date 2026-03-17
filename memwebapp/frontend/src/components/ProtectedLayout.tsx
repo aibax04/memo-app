@@ -6,6 +6,8 @@ import NavBar from "./NavBar";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "./ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
 
 // Check if token has expired (7 days)
 const isTokenExpired = (): boolean => {
@@ -56,22 +58,23 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Navbar is fixed at the top with higher z-index */}
-      {/* <div className="w-full z-20 relative">
-        <NavBar />
-      </div> */}
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <div className="flex flex-col min-h-screen">
+          <div className="pt-6 flex-shrink-0 flex items-center px-4 md:px-6">
+            <SidebarTrigger className="-ml-1" />
+          </div>
 
-      {/* Add spacing below navbar */}
-      <div className="pt-6 flex-shrink-0"></div>
-
-      {/* Main content area that includes the sidebar and page content */}
-      <div className="flex-1 flex min-h-0 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pb-6">
-        <div className="w-full">
-          {children || <Outlet />}
+          {/* Main content area */}
+          <div className="flex-1 flex min-h-0 w-full mx-auto px-4 md:px-8 pb-6">
+            <div className="w-full">
+              {children || <Outlet />}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

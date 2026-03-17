@@ -200,4 +200,7 @@ class SpeakerNameUpdate(BaseModel):
     new_speaker_name: str
 
 class BulkSpeakerNameUpdate(BaseModel):
-    speaker_updates: Dict[str, str]  # old_name -> new_name mapping 
+    speaker_updates: Dict[str, str]  # old_name -> new_name mapping
+class SpeakerMergeUpdate(BaseModel):
+    target_speaker: str
+    source_speakers: List[str]

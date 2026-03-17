@@ -88,15 +88,20 @@ function detectMeetingTitle() {
     title = detectZoomTitle();
   }
 
-  if (title && title !== detectedMeetingTitle) {
-    detectedMeetingTitle = title;
-    console.log('[Content] Detected meeting title:', title);
+  if (title) {
+    // Limit to 12 words for better context
+    title = title.trim().split(/\s+/).slice(0, 12).join(' ');
 
-    // Send to background
-    safeSendMessage({
-      action: 'UPDATE_MEETING_TITLE',
-      title: title
-    });
+    if (title !== detectedMeetingTitle) {
+      detectedMeetingTitle = title;
+      console.log('[Content] Detected meeting title (limited to 4 words):', title);
+
+      // Send to background
+      safeSendMessage({
+        action: 'UPDATE_MEETING_TITLE',
+        title: title
+      });
+    }
   }
 
   return title;

@@ -64,6 +64,10 @@ class Settings:
     # Frontend settings
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
     
+    # Admin settings
+    ADMIN_KEY: str = os.getenv("ADMIN_KEY", "")
+    PROMO_CODE: str = os.getenv("PROMO_CODE", "MEMOUSER7860")
+    
     # AWS S3 settings
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")

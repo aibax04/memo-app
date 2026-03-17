@@ -669,6 +669,7 @@ async function startRecording(tabId, meetingDetails) {
     state.isRecording = true;
     state.currentTabId = tabId;
     state.recordingStartTime = Date.now();
+    // Title limit is now enforced in the popup UI (4 words)
     state.meetingDetails = { ...meetingDetails, platform };
 
     // Save template preference if selected
@@ -1062,7 +1063,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (tabId === state.currentTabId && state.isRecording && changeInfo.url) {
     const isMeetingUrl = changeInfo.url.includes('meet.google.com') ||
       changeInfo.url.includes('teams.microsoft.com') ||
-      changeInfo.url.includes('teams.live.com');
+      changeInfo.url.includes('teams.live.com') ||
+      changeInfo.url.includes('teams.cloud.microsoft') ||
+      changeInfo.url.includes('zoom.us') ||
+      changeInfo.url.includes('zoom.com');
 
     if (!isMeetingUrl) {
       console.log('[Background] User left meeting, stopping recording...');

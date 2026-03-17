@@ -5,7 +5,7 @@ import {
     FileText, BarChart3, Mic, AlertCircle, Loader2, CheckCircle2,
     RefreshCw, ChevronRight, MessageSquare, ListChecks, Lightbulb,
     TrendingUp, ThumbsUp, ThumbsDown, Minus, Trash2, Zap, Brain, Activity,
-    Shield, Target, Award, UserPlus, Info, Volume1, Waves, Video, Pencil, Lock, ShieldCheck
+    Shield, Target, Award, UserPlus, Info, Volume1, Waves, Video, Pencil, Lock, ShieldCheck, Map
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1328,6 +1328,65 @@ const SidebarContent = ({
 
     return (
         <div className="flex flex-col gap-6">
+            {/* Meeting Roadmap - Visual Timeline */}
+            {meeting.transcription && meeting.transcription.length > 0 && (
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 text-slate-400 pointer-events-none">
+                        <Map className="h-24 w-24" />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100">
+                                <Map className="h-4 w-4 text-indigo-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800">Meeting Roadmap</h3>
+                        </div>
+
+                        <div className="relative pl-6">
+                            {/* Vertical Line */}
+                            <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-indigo-200 via-purple-200 to-emerald-200 rounded-full" />
+                            
+                            {/* Roadmap Nodes */}
+                            <div className="space-y-6">
+                                {/* Kickoff */}
+                                <div className="relative">
+                                    <div className="absolute -left-[30px] top-1 w-3 h-3 rounded-full bg-indigo-500 ring-4 ring-white shadow-sm" />
+                                    <div>
+                                        <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-1">{formatTimestamp(0)}</p>
+                                        <p className="text-sm font-bold text-slate-800">Session Kickoff</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5 max-w-[90%]">Initial introductions and agenda setting</p>
+                                    </div>
+                                </div>
+                                
+                                {/* Core Discussion */}
+                                <div className="relative">
+                                    <div className="absolute -left-[30px] top-1 w-3 h-3 rounded-full bg-purple-500 ring-4 ring-white shadow-sm" />
+                                    <div>
+                                        <p className="text-xs font-bold text-purple-600 uppercase tracking-widest mb-1">
+                                            {formatTimestamp(Math.max(...meeting.transcription.map((s: any) => s.end)) * 0.3)}
+                                        </p>
+                                        <p className="text-sm font-bold text-slate-800">Core Discussion</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5 max-w-[90%]">Main topics covered and deliberations</p>
+                                    </div>
+                                </div>
+                                
+                                {/* Action Items & Wrap up */}
+                                <div className="relative">
+                                    <div className="absolute -left-[30px] top-1 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-white shadow-sm" />
+                                    <div>
+                                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">
+                                            {formatTimestamp(Math.max(...meeting.transcription.map((s: any) => s.end)) * 0.85)}
+                                        </p>
+                                        <p className="text-sm font-bold text-slate-800">Wrap Up</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5 max-w-[90%]">Conclusions and assignment of action items</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Audio Insights - Standardized Alignment */}
             <div className="bg-white rounded-3xl p-6 shadow-sm text-slate-900 overflow-hidden relative border border-slate-200">
                 <div className="absolute top-0 right-0 p-4 opacity-5 text-slate-400">

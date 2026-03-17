@@ -150,6 +150,15 @@ export const getUniqueSpeakers = async (): Promise<any[] | { error: string }> =>
     return result;
 };
 
+// Get meetings by speaker
+export const getMeetingsBySpeaker = async (speakerName: string): Promise<{ items: Meeting[]; total: number } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/by-speaker?speaker_name=${encodeURIComponent(speakerName)}`);
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result;
+};
+
 // Helper: Format duration from minutes
 export const formatDuration = (minutes: number | null): string => {
     if (!minutes || minutes === 0) return '00:00:00';

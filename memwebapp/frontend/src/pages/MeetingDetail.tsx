@@ -13,12 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
     getMeeting, getMeetingAudioUrl, reprocessMeeting, deleteMeeting, renameSpeaker,
     updateMeeting, formatTimestamp, formatMeetingDate, formatDuration,
-    mergeSpeakers,
+    mergeSpeakers, getMeetingsBySpeaker,
     type Meeting, type TranscriptionSegment
 } from '@/services/meetingApi';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, AreaChart, Area, Legend } from 'recharts';
 
 type TabType = 'transcription' | 'summary' | 'analytics' | 'audio';
 
@@ -796,6 +796,91 @@ const SummaryView = ({ meeting }: { meeting: Meeting }) => (
 
 const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
     const analytics = meeting.analytics_data;
+    const [pendingMeetings, setPendingMeetings] = useState<Record<string, { meetings: any[]; loading: boolean }>>({});
+
+    // Compute speaker voice data from transcription
+    const speakerVoiceData = React.useMemo(() => {
+        if (!meeting.transcription || !Array.isArray(meeting.transcription)) return [];
+
+        const speakerMap: Record<string, { totalTime: number; wordCount: number; segmentCount: number; segments: Array<{ start: number; end: number }> }> = {};
+
+        meeting.transcription.forEach((seg: TranscriptionSegment) => {
+            if (!speakerMap[seg.speaker]) {
+                speakerMap[seg.speaker] = { totalTime: 0, wordCount: 0, segmentCount: 0, segments: [] };
+            }
+            const duration = Math.max(0, seg.end - seg.start);
+            speakerMap[seg.speaker].totalTime += duration;
+            speakerMap[seg.speaker].wordCount += seg.text.split(/\s+/).filter(Boolean).length;
+            speakerMap[seg.speaker].segmentCount += 1;
+            speakerMap[seg.speaker].segments.push({ start: seg.start, end: seg.end });
+        });
+
+        return Object.entries(speakerMap).map(([speaker, data], idx) => ({
+            speaker,
+            speakingTime: Math.round(data.totalTime),
+            wordCount: data.wordCount,
+            segments: data.segmentCount,
+            color: SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent,
+            rawSegments: data.segments,
+        }));
+    }, [meeting.transcription]);
+
+    // Compute voice timeline data (10-second buckets)
+    const voiceTimeline = React.useMemo(() => {
+        if (!meeting.transcription || !Array.isArray(meeting.transcription) || meeting.transcription.length === 0) return [];
+
+        const maxTime = Math.max(...meeting.transcription.map((s: TranscriptionSegment) => s.end));
+        const bucketSize = Math.max(10, Math.ceil(maxTime / 30)); // ~30 buckets max
+        const bucketCount = Math.ceil(maxTime / bucketSize);
+        const speakers: string[] = Array.from(new Set(meeting.transcription.map((s: TranscriptionSegment) => s.speaker)));
+
+        const timeline: any[] = [];
+        for (let i = 0; i < bucketCount; i++) {
+            const bucketStart = i * bucketSize;
+            const bucketEnd = bucketStart + bucketSize;
+            const entry: any = { time: formatTimestamp(bucketStart) };
+
+            speakers.forEach(speaker => {
+                let speakTime = 0;
+                meeting.transcription!.forEach((seg: TranscriptionSegment) => {
+                    if (seg.speaker !== speaker) return;
+                    const overlapStart = Math.max(seg.start, bucketStart);
+                    const overlapEnd = Math.min(seg.end, bucketEnd);
+                    if (overlapEnd > overlapStart) {
+                        speakTime += overlapEnd - overlapStart;
+                    }
+                });
+                entry[speaker] = Math.round(speakTime);
+            });
+            timeline.push(entry);
+        }
+        return timeline;
+    }, [meeting.transcription]);
+
+    // Fetch pending meetings for each participant
+    useEffect(() => {
+        if (!meeting.participants || meeting.participants.length === 0) return;
+
+        meeting.participants.forEach(async (participant: string) => {
+            if (pendingMeetings[participant]) return; // already fetched
+            setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], loading: true } }));
+            try {
+                const result = await getMeetingsBySpeaker(participant);
+                if (!('error' in result)) {
+                    const pending = result.items.filter(
+                        (m: any) => (m.status === 'PENDING' || m.status === 'PROCESSING' || m.status === 'RECORDING') && m.id !== meeting.id
+                    );
+                    setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: pending, loading: false } }));
+                } else {
+                    setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], loading: false } }));
+                }
+            } catch {
+                setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], loading: false } }));
+            }
+        });
+    }, [meeting.participants, meeting.id]);
+
+    const speakers: string[] = meeting.transcription ? Array.from(new Set(meeting.transcription.map((s: TranscriptionSegment) => s.speaker))) : [];
     if (!analytics) return (
         <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-4" />
@@ -984,6 +1069,191 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
                         </ResponsiveContainer>
                     </div>
                 </div>
+
+                {/* Speaker Voice Activity Graph */}
+                {speakerVoiceData.length > 0 && (
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-2 bg-purple-50 rounded-xl border border-purple-100">
+                                <Mic className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Speaker Voice Analysis</h3>
+                                <p className="text-xs font-medium text-slate-500">Speaking time and word count per participant</p>
+                            </div>
+                        </div>
+
+                        {/* Bar chart: Speaking Time per Speaker */}
+                        <div className="h-[280px] w-full mb-8">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={speakerVoiceData} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                                    <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} tickFormatter={(v) => `${v}s`} />
+                                    <YAxis dataKey="speaker" type="category" width={100} tick={{ fill: '#334155', fontSize: 12, fontWeight: 700 }} />
+                                    <RechartsTooltip
+                                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }}
+                                        formatter={(value: any, name: string) => [
+                                            name === 'speakingTime' ? `${value}s` : value,
+                                            name === 'speakingTime' ? 'Speaking Time' : 'Words'
+                                        ]}
+                                    />
+                                    <Bar dataKey="speakingTime" name="Speaking Time" radius={[0, 8, 8, 0]} barSize={24}>
+                                        {speakerVoiceData.map((entry, idx) => (
+                                            <Cell key={idx} fill={entry.color} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Speaker stats cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                            {speakerVoiceData.map((s, idx) => {
+                                const totalTime = speakerVoiceData.reduce((sum, d) => sum + d.speakingTime, 0);
+                                const pct = totalTime > 0 ? Math.round((s.speakingTime / totalTime) * 100) : 0;
+                                return (
+                                    <div key={idx} className="bg-slate-50/80 rounded-2xl p-5 border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all group">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg" style={{ backgroundColor: s.color }}>
+                                                {s.speaker.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-800 truncate">{s.speaker}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{pct}% of conversation</p>
+                                            </div>
+                                        </div>
+                                        <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden mb-3">
+                                            <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%`, backgroundColor: s.color }} />
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2 text-center">
+                                            <div>
+                                                <p className="text-lg font-black text-slate-900">{s.speakingTime}s</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Time</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-lg font-black text-slate-900">{s.wordCount}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Words</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-lg font-black text-slate-900">{s.segments}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Turns</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Voice Activity Timeline */}
+                        {voiceTimeline.length > 0 && speakers.length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Waves className="h-4 w-4 text-slate-500" />
+                                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Voice Activity Timeline</h4>
+                                </div>
+                                <div className="h-[220px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={voiceTimeline} margin={{ left: 0, right: 10, top: 10, bottom: 10 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                            <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} interval="preserveStartEnd" />
+                                            <YAxis tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={(v) => `${v}s`} />
+                                            <RechartsTooltip
+                                                contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }}
+                                                formatter={(value: any) => [`${value}s`, undefined]}
+                                            />
+                                            <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                                            {speakers.map((speaker, idx) => (
+                                                <Area
+                                                    key={speaker}
+                                                    type="monotone"
+                                                    dataKey={speaker}
+                                                    stackId="1"
+                                                    stroke={SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent}
+                                                    fill={SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent}
+                                                    fillOpacity={0.3}
+                                                    strokeWidth={2}
+                                                />
+                                            ))}
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Meetings Pending per Participant */}
+                {meeting.participants && meeting.participants.length > 0 && (
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-2 bg-amber-50 rounded-xl border border-amber-100">
+                                <Clock className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Pending Meetings by Participant</h3>
+                                <p className="text-xs font-medium text-slate-500">Meetings still pending or processing for each person</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {meeting.participants.map((participant: string, pIdx: number) => {
+                                const data = pendingMeetings[participant];
+                                const isLoading = data?.loading ?? true;
+                                const meetings = data?.meetings ?? [];
+
+                                return (
+                                    <div key={pIdx} className="rounded-2xl border border-slate-100 overflow-hidden">
+                                        <div className="flex items-center gap-3 p-4 bg-slate-50/50">
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md" style={{ backgroundColor: SPEAKER_COLORS[pIdx % SPEAKER_COLORS.length].accent }}>
+                                                {participant.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-800 truncate">{participant}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {isLoading ? (
+                                                    <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
+                                                ) : meetings.length > 0 ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                                                        <Clock className="h-3 w-3" />
+                                                        {meetings.length} Pending
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                        All Clear
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {!isLoading && meetings.length > 0 && (
+                                            <div className="p-3 space-y-2">
+                                                {meetings.slice(0, 5).map((m: any, mIdx: number) => (
+                                                    <div key={mIdx} className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/50 border border-amber-100/60 hover:bg-amber-50 transition-all cursor-pointer group/item" onClick={() => window.location.href = `/meetings/${m.id}`}>
+                                                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-bold text-slate-800 truncate group-hover/item:text-[#1B2BB8] transition-colors">{m.title || 'Untitled Meeting'}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                                                {m.created_at ? formatMeetingDate(m.created_at).split('•')[0] : 'Date unknown'}
+                                                                {' • '}
+                                                                <span className={m.status === 'PROCESSING' ? 'text-blue-500' : 'text-amber-500'}>{m.status}</span>
+                                                            </p>
+                                                        </div>
+                                                        <ChevronRight className="h-3.5 w-3.5 text-slate-300 group-hover/item:text-[#1B2BB8] transition-colors shrink-0" />
+                                                    </div>
+                                                ))}
+                                                {meetings.length > 5 && (
+                                                    <p className="text-[10px] text-slate-400 font-bold text-center pt-1 uppercase tracking-wider">+{meetings.length - 5} more pending</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Core (always visible when present) */}
                 {renderedCore.length > 0 && (

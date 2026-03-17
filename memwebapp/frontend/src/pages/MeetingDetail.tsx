@@ -796,7 +796,7 @@ const SummaryView = ({ meeting }: { meeting: Meeting }) => (
 
 const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
     const analytics = meeting.analytics_data;
-    const [pendingMeetings, setPendingMeetings] = useState<Record<string, { meetings: any[]; loading: boolean }>>({});
+    const [pendingMeetings, setPendingMeetings] = useState<Record<string, { meetings: any[]; totalMeetings: number; loading: boolean }>>({});
 
     // Compute speaker voice data from transcription
     const speakerVoiceData = React.useMemo(() => {
@@ -863,19 +863,19 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
 
         meeting.participants.forEach(async (participant: string) => {
             if (pendingMeetings[participant]) return; // already fetched
-            setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], loading: true } }));
+            setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], totalMeetings: 0, loading: true } }));
             try {
                 const result = await getMeetingsBySpeaker(participant);
                 if (!('error' in result)) {
                     const pending = result.items.filter(
                         (m: any) => (m.status === 'PENDING' || m.status === 'PROCESSING' || m.status === 'RECORDING') && m.id !== meeting.id
                     );
-                    setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: pending, loading: false } }));
+                    setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: pending, totalMeetings: result.total || 0, loading: false } }));
                 } else {
-                    setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], loading: false } }));
+                    setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], totalMeetings: 0, loading: false } }));
                 }
             } catch {
-                setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], loading: false } }));
+                setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], totalMeetings: 0, loading: false } }));
             }
         });
     }, [meeting.participants, meeting.id]);
@@ -1200,6 +1200,7 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
                                 const data = pendingMeetings[participant];
                                 const isLoading = data?.loading ?? true;
                                 const meetings = data?.meetings ?? [];
+                                const totalJoined = data?.totalMeetings ?? 0;
 
                                 return (
                                     <div key={pIdx} className="rounded-2xl border border-slate-100 overflow-hidden">
@@ -1209,6 +1210,11 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-slate-800 truncate">{participant}</p>
+                                                {!isLoading && (
+                                                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                                        Taken <span className="font-bold text-slate-700">{totalJoined} meeting{totalJoined !== 1 ? 's' : ''}</span> total
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {isLoading ? (

@@ -21,7 +21,7 @@ import {
     Trash2, Shield, LogOut, Activity,
     Calendar, TrendingUp, UserPlus, ChevronDown, ChevronUp,
     Search, RefreshCw, X, ArrowLeft, Video,
-    Star, Sparkles,
+    Star, Sparkles, Bot, FileText,
 } from "lucide-react";
 
 /* ─────────────────────── helpers ─────────────────────── */
@@ -237,6 +237,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <button
+                        type="button"
                         onClick={() => navigate("/login")}
                         className="absolute top-8 left-8 z-20 flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-semibold text-sm group"
                     >
@@ -325,6 +326,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
+                            type="button"
                             onClick={loadData}
                             className="h-9 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1B2BB8] text-sm font-bold flex items-center gap-2 transition-all"
                         >
@@ -332,6 +334,7 @@ const AdminDashboard: React.FC = () => {
                             Refresh
                         </button>
                         <button
+                            type="button"
                             onClick={handleLogout}
                             className="h-9 px-4 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 text-sm font-bold flex items-center gap-2 transition-all"
                         >
@@ -417,6 +420,7 @@ const AdminDashboard: React.FC = () => {
                                 />
                             </div>
                             <button
+                                type="button"
                                 onClick={() => setShowCreateDialog(true)}
                                 className="h-10 px-5 rounded-xl bg-[#1B2BB8] hover:bg-blue-800 text-white text-sm font-bold flex items-center gap-2 shadow-[0_4px_14px_0_rgba(27,43,184,0.25)] transition-all active:scale-[0.97]"
                             >
@@ -462,6 +466,16 @@ const AdminDashboard: React.FC = () => {
                                                                     Pro
                                                                 </span>
                                                             )}
+                                                            {user.auth_provider === "self_service" && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-100 text-[10px] font-black uppercase tracking-tight" title="Registered via public sign-up page">
+                                                                    Self signup
+                                                                </span>
+                                                            )}
+                                                            {user.auth_provider === "local" && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100 text-[10px] font-black uppercase tracking-tight" title="Created from admin dashboard">
+                                                                    Admin
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <p className="text-xs text-slate-400 font-medium">{user.email}</p>
                                                     </div>
@@ -494,6 +508,7 @@ const AdminDashboard: React.FC = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleExpandUser(user.id)}
                                                         className="p-2 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-[#1B2BB8] transition-colors"
                                                         title="View meetings"
@@ -501,6 +516,7 @@ const AdminDashboard: React.FC = () => {
                                                         {expandedUserId === user.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleToggleActive(user)}
                                                         className={`p-2 rounded-lg transition-colors ${user.is_active
                                                             ? "hover:bg-amber-50 text-slate-400 hover:text-amber-600"
@@ -510,7 +526,9 @@ const AdminDashboard: React.FC = () => {
                                                     >
                                                         {user.is_active ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                                                     </button>
+
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleTogglePro(user)}
                                                         className={`p-2 rounded-lg transition-colors ${user.is_pro
                                                             ? "hover:bg-amber-50 text-amber-500"
@@ -521,7 +539,12 @@ const AdminDashboard: React.FC = () => {
                                                         <Star className={`w-4 h-4 ${user.is_pro ? "fill-current" : ""}`} />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteUser(user)}
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            handleDeleteUser(user);
+                                                        }}
                                                         className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
                                                         title="Delete user"
                                                     >
@@ -535,6 +558,44 @@ const AdminDashboard: React.FC = () => {
                                         {expandedUserId === user.id && (
                                             <tr>
                                                 <td colSpan={8} className="px-6 py-5 bg-slate-50/60 border-b border-slate-100">
+                                                    {/* Quick Actions Bar */}
+                                                    <div className="flex flex-wrap items-center justify-end gap-3 mb-6 animate-in slide-in-from-top-2 duration-300">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toast.info(`Generating Progress Report for ${user.name}`)}
+                                                            className="flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm group min-w-[180px]"
+                                                        >
+                                                            <div className="p-2 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
+                                                                <FileText className="w-5 h-5 text-emerald-600" />
+                                                            </div>
+                                                            <span className="text-sm font-bold">Progress Report</span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toast.info(`Starting Chat with MemoBot about ${user.name}`)}
+                                                            className="flex items-center gap-3 px-6 py-3 bg-[#1B2BB8] text-white rounded-2xl hover:bg-blue-800 transition-all shadow-[0_4px_14px_0_rgba(27,43,184,0.3)] hover:scale-105 active:scale-95 group min-w-[200px]"
+                                                        >
+                                                            <div className="p-2 bg-white/10 rounded-xl group-hover:bg-white/20 transition-colors">
+                                                                <Bot className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none">AI Assistant</p>
+                                                                <p className="text-sm font-bold">Ask MemoBot</p>
+                                                            </div>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toast.info(`Viewing Calendar for ${user.name}`)}
+                                                            className="flex items-center justify-center p-3 bg-white border border-slate-200 rounded-2xl hover:border-blue-500 hover:text-[#1B2BB8] transition-all shadow-sm group h-[52px] w-[52px]"
+                                                            title="Calendar View"
+                                                        >
+                                                            <div className="p-2 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors">
+                                                                <Calendar className="w-5 h-5 text-[#1B2BB8]" />
+                                                            </div>
+                                                        </button>
+                                                    </div>
                                                     {meetingsLoading ? (
                                                         <div className="flex items-center justify-center py-8 text-slate-400">
                                                             <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading meetings…
@@ -614,9 +675,10 @@ const AdminDashboard: React.FC = () => {
                         <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 tracking-tight">Create New User</h3>
-                                <p className="text-sm text-slate-500 mt-0.5 font-medium">Set up a personalized account</p>
+                                <p className="text-sm text-slate-500 mt-0.5 font-medium">Same database as public sign-up — tagged as <span className="font-bold text-slate-700">Admin</span> here. Self-registered users show <span className="font-bold text-violet-600">Self signup</span>.</p>
                             </div>
                             <button
+                                type="button"
                                 onClick={() => setShowCreateDialog(false)}
                                 className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
                             >

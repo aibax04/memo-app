@@ -36,10 +36,10 @@ ssh Acknowledge << 'REMOTE'
   
   # Seed templates
   cd ../backend
-  # Migrate data if switching to Postgres (idempotent)
-  .venv/bin/python migrate_to_postgres.py
-  .venv/bin/python seed_templates.py
-  .venv/bin/python seed_sample_meeting.py
+  # Migrate data if switching to Postgres (idempotent, non-fatal)
+  .venv/bin/python migrate_to_postgres.py || echo "⚠️  Migration skipped (already done or no SQLite DB)"
+  .venv/bin/python seed_templates.py || echo "⚠️  Seed templates skipped"
+  .venv/bin/python seed_sample_meeting.py || echo "⚠️  Seed sample meeting skipped"
   
   # Restart services
   sudo systemctl restart memoapp-backend

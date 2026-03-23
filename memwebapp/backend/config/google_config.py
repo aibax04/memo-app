@@ -22,10 +22,13 @@ class GoogleConfig:
     # Including Calendar API scopes for Google Calendar integration
     SCOPES = [
         "openid",
-        "profile", 
+        "profile",
         "email",
         "https://www.googleapis.com/auth/calendar.readonly",  # Read calendar events
         "https://www.googleapis.com/auth/calendar.events",    # Create/modify calendar events
+        # Gmail: create/send drafts (optional; enables future server-side send when tokens are stored)
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.send",
     ]
     
     # Google OAuth2 endpoints

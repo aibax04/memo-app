@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import {
     Video, FileText, Chrome, CalendarPlus, Zap, CheckCircle2,
-    LogOut, ShieldCheck, Activity, Clock
+    LogOut, ShieldCheck, Activity, Clock, Layers2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -27,6 +27,7 @@ export function AppSidebar() {
     const [promoCode, setPromoCode] = useState('');
     const [showPromoDialog, setShowPromoDialog] = useState(false);
     const [showCelebration, setShowCelebration] = useState(false);
+    const [isActivating, setIsActivating] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [meetings, setMeetings] = useState<any[]>([]);
@@ -63,16 +64,21 @@ export function AppSidebar() {
     }, [selectedDate, meetings]);
 
     const handleUnlock = async () => {
+        if (isActivating || !promoCode.trim()) return;
+        setIsActivating(true);
         try {
             const result = await activatePro(promoCode.trim());
-            if (!result.error) {
+            if (result?.success) {
                 setShowPromoDialog(false);
+                setPromoCode('');
                 setShowCelebration(true);
             } else {
-                toast.error(result.detail || result.error || "Invalid Promo Code");
+                toast.error(result?.error || "Invalid Promo Code");
             }
         } catch (e: any) {
             toast.error(e.message || "Failed to activate Pro");
+        } finally {
+            setIsActivating(false);
         }
     };
 
@@ -246,6 +252,17 @@ export function AppSidebar() {
                                         </DialogContent>
                                     </Dialog>
                                 </SidebarMenuItem>
+
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        isActive={location.pathname.startsWith('/tools/grouped-meeting-analysis')}
+                                        onClick={() => navigate('/tools/grouped-meeting-analysis')}
+                                        className="font-bold text-slate-600 h-10 rounded-xl hover:bg-slate-100 data-[active=true]:bg-blue-50 data-[active=true]:text-[#1B2BB8] transition-all"
+                                    >
+                                        <Layers2 className="w-5 h-5 mr-3 text-indigo-500" />
+                                        <span>Grouped meeting analysis</span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </SidebarGroup>
@@ -317,8 +334,8 @@ export function AppSidebar() {
                                             placeholder="Enter promo code"
                                             className="h-14 border-slate-200 rounded-2xl bg-slate-50 focus:bg-white text-lg px-4"
                                         />
-                                        <Button onClick={handleUnlock} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-14 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(245,158,11,0.39)] transition-all active:scale-95">
-                                            Unlock Now
+                                        <Button onClick={handleUnlock} disabled={isActivating || !promoCode.trim()} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-14 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(245,158,11,0.39)] transition-all active:scale-95 disabled:opacity-60">
+                                            {isActivating ? 'Activating...' : 'Unlock Now'}
                                         </Button>
                                     </div>
                                 </DialogContent>

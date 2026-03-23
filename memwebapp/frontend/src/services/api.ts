@@ -62,7 +62,8 @@ export const callApi = async (
     localStorage.removeItem('dashboardUser');
     localStorage.removeItem('memo_pro');
     toast.error("Your session has expired. Please log in again.");
-    window.location.href = '/login';
+    try { window.dispatchEvent(new Event('memo_pro_updated')); } catch (_) {}
+    setTimeout(() => { window.location.replace('/login'); }, 100);
     return { error: "Authentication token expired" };
   }
 
@@ -116,8 +117,8 @@ export const callApi = async (
 
     console.log(`Response status: ${response.status}`);
 
-    // Handle 401 Unauthorized or 403 Forbidden globally
-    if (response.status === 401 || response.status === 403) {
+    // 401: invalid/expired token — clear session. 403: permission/plan (e.g. Pro-only) — return error, do not log out.
+    if (response.status === 401) {
       console.error(`Authentication failed (${response.status}). Token may be expired or invalid.`);
       localStorage.removeItem('memoapp_access_token');
       localStorage.removeItem('memoapp_token_timestamp');
@@ -125,8 +126,10 @@ export const callApi = async (
       localStorage.removeItem('dashboardUser');
       localStorage.removeItem('memo_pro');
       accessToken = null;
-      toast.error("Authentication failed. Please log in again.");
-      window.location.href = '/login';
+      toast.error("Session expired. Please log in again.");
+      // Use soft redirect so React can unmount cleanly (avoids white-screen crash)
+      try { window.dispatchEvent(new Event('memo_pro_updated')); } catch (_) {}
+      setTimeout(() => { window.location.replace('/login'); }, 100);
       return { error: "Authentication failed" };
     }
 
@@ -149,7 +152,22 @@ export const callApi = async (
 
     if (!response.ok) {
       console.error(`❌ API Error: ${response.status} ${response.statusText}`, data);
-      return { error: data.detail || data || "API error occurred", status: response.status };
+      let errMsg: string;
+      if (typeof data?.detail === 'string') {
+        errMsg = data.detail;
+      } else if (Array.isArray(data?.detail)) {
+        errMsg = data.detail
+          .map((d: { msg?: string; loc?: string[] }) => d?.msg || JSON.stringify(d))
+          .filter(Boolean)
+          .join('. ') || `Request failed (${response.status})`;
+      } else if (typeof data?.error === 'string') {
+        errMsg = data.error;
+      } else if (typeof data?.message === 'string') {
+        errMsg = data.message;
+      } else {
+        errMsg = `Request failed (${response.status})`;
+      }
+      return { error: errMsg, status: response.status };
     }
 
     return data;
@@ -224,26 +242,68 @@ export const loginUser = async (username: string, password: string): Promise<any
   return { error: result.error || "Login failed" };
 };
 
+/** Self-service signup — creates User in DB (auth_provider=self_service). Same table as admin-created users. */
+export const registerUser = async (
+  email: string,
+  password: string,
+  name: string
+): Promise<{ id: number; name: string; email: string } | { error: string }> => {
+  const result = await callApi(
+    '/api/v1/web/users/',
+    'POST',
+    { email: email.trim(), password, name: name.trim() || undefined },
+    false
+  );
+
+  if (result?.error) {
+    const err = result.error;
+    const msg = typeof err === 'string' ? err : 'Registration failed';
+    return { error: msg };
+  }
+
+  if (result?.id != null && result?.email) {
+    return {
+      id: result.id,
+      name: result.name || result.email.split('@')[0],
+      email: result.email,
+    };
+  }
+
+  return { error: 'Registration failed' };
+};
+
 export const getProStatus = async (): Promise<{ is_pro: boolean }> => {
-  return await callApi('/pro-status', 'GET');
+  return await callApi('/api/v1/web/pro-status', 'GET');
 };
 
 export const activatePro = async (promoCode: string): Promise<any> => {
-  const result = await callApi('/activate-pro', 'POST', { promo_code: promoCode });
-  if (result && !result.error) {
-    localStorage.setItem('memo_pro', 'true');
-    window.dispatchEvent(new Event('memo_pro_updated'));
+  try {
+    const result = await callApi('/api/v1/web/activate-pro', 'POST', { promo_code: promoCode });
+    if (result && result.status === 'ok' && !result.error) {
+      localStorage.setItem('memo_pro', 'true');
+      window.dispatchEvent(new Event('memo_pro_updated'));
+      return { success: true, ...result };
+    }
+    const errMsg = typeof result?.error === 'string' ? result.error : 'Failed to activate Pro';
+    return { error: errMsg };
+  } catch (e: any) {
+    return { error: e.message || 'Network error during Pro activation' };
   }
-  return result;
 };
 
 export const revokePro = async (): Promise<any> => {
-  const result = await callApi('/revoke-pro', 'POST');
-  if (result && !result.error) {
-    localStorage.setItem('memo_pro', 'false');
-    window.dispatchEvent(new Event('memo_pro_updated'));
+  try {
+    const result = await callApi('/api/v1/web/revoke-pro', 'POST');
+    if (result && result.status === 'ok' && !result.error) {
+      localStorage.setItem('memo_pro', 'false');
+      window.dispatchEvent(new Event('memo_pro_updated'));
+      return { success: true, ...result };
+    }
+    const errMsg = typeof result?.error === 'string' ? result.error : 'Failed to revoke Pro';
+    return { error: errMsg };
+  } catch (e: any) {
+    return { error: e.message || 'Network error during Pro revocation' };
   }
-  return result;
 };
 
 export const createUser = async (email: string, password: string, name?: string): Promise<any> => {

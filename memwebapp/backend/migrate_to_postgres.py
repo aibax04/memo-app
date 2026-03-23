@@ -20,14 +20,37 @@ POSTGRES_URL = "postgresql://memoapp:memoapp_secure_2026@localhost:5433/memoapp"
 
 def migrate():
     print(f"🎬 Starting migration from {SQLITE_URL} to {POSTGRES_URL}")
-    
+
+    sqlite_path = SQLITE_URL.replace("sqlite:///", "")
+    if sqlite_path.startswith("./"):
+        sqlite_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), sqlite_path[2:])
+    if not os.path.exists(sqlite_path):
+        print("⏭️  SQLite database not found — nothing to migrate. Ensuring Postgres tables exist...")
+        pg_engine = create_engine(POSTGRES_URL)
+        Base.metadata.create_all(bind=pg_engine)
+        pg_engine.dispose()
+        print("✅ Postgres tables verified.")
+        return
+
     # 1. Setup engines and sessions
     sqlite_engine = create_engine(SQLITE_URL)
+
+    from sqlalchemy import inspect as sa_inspect
+    inspector = sa_inspect(sqlite_engine)
+    existing_tables = inspector.get_table_names()
+    if "users" not in existing_tables:
+        print(f"⏭️  SQLite DB exists but has no 'users' table (tables: {existing_tables}). Skipping migration.")
+        sqlite_engine.dispose()
+        pg_engine = create_engine(POSTGRES_URL)
+        Base.metadata.create_all(bind=pg_engine)
+        pg_engine.dispose()
+        print("✅ Postgres tables verified.")
+        return
+
     SqliteSession = sessionmaker(bind=sqlite_engine)
     sqlite_db = SqliteSession()
     
     postgres_engine = create_engine(POSTGRES_URL)
-    # Ensure tables exist in Postgres
     print("🏗️ Creating tables in Postgres...")
     Base.metadata.create_all(bind=postgres_engine)
     

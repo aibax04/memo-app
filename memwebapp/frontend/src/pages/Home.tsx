@@ -74,7 +74,7 @@ const Home: React.FC = () => {
                             <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-[#1B2BB8] transition-colors">
                                 Sign In
                             </Link>
-                            <Link to="/signup">
+                            <Link to="/register">
                                 <Button className="bg-white border border-slate-200 hover:bg-slate-50 text-black font-bold rounded-xl px-6 h-11 transition-all active:scale-95 shadow-sm">
                                     Get Started
                                 </Button>
@@ -107,7 +107,7 @@ const Home: React.FC = () => {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                        <Link to="/signup" className="w-full sm:w-auto">
+                        <Link to="/register" className="w-full sm:w-auto">
                             <Button className="w-full sm:w-auto bg-[#1B2BB8] hover:bg-blue-800 text-white h-16 px-10 rounded-2xl font-bold text-xl shadow-[0_4px_14px_0_rgba(27,43,184,0.39)] transition-all active:scale-95">
                                 Try for Free
                             </Button>
@@ -212,7 +212,7 @@ const Home: React.FC = () => {
                             <h2 className="text-4xl md:text-6xl font-medium tracking-tight mb-6 leading-tight">Packed with <br /><span className="text-[#1B2BB8] font-['Caveat_Brush'] inline-block transform scale-[1.25] origin-left mt-1">Enterprise Power.</span></h2>
                             <p className="text-lg text-slate-500 font-medium">Everything you need to turn voices into value, without the manual effort.</p>
                         </div>
-                        <Link to="/signup">
+                        <Link to="/register">
                             <Button variant="outline" className="h-14 px-8 border-slate-300 hover:bg-white rounded-xl font-bold bg-white/50 backdrop-blur-sm">Explore All Features</Button>
                         </Link>
                     </div>
@@ -325,7 +325,7 @@ const Home: React.FC = () => {
                             Join 5,000+ professionals using Memo Intelligence to stay focused on the client, not the notepad.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link to="/signup" className="w-full sm:w-auto">
+                            <Link to="/register" className="w-full sm:w-auto">
                                 <Button className="w-full sm:w-auto bg-white text-[#1B2BB8] hover:bg-blue-50 h-16 px-12 rounded-2xl font-bold text-xl transition-all shadow-xl active:scale-95 shadow-blue-900/40">
                                     Get Started Free
                                 </Button>

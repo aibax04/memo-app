@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from urllib.parse import urlencode
 from fastapi import HTTPException, status
 import logging
 import httpx
@@ -28,11 +29,9 @@ class GoogleAuthService(BaseAuthService):
             "redirect_uri": actual_redirect_uri,
             "scope": " ".join(google_config.SCOPES),
             "access_type": "offline",
-            "prompt": "select_account"
+            "prompt": "select_account",
         }
-        
-        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-        auth_url = f"{google_config.AUTH_URL}?{query_string}"
+        auth_url = f"{google_config.AUTH_URL}?{urlencode(params)}"
         
         logger.info(f"🔗 Generated Google auth URL: {auth_url}")
         return auth_url

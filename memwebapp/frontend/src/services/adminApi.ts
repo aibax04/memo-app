@@ -51,10 +51,30 @@ const adminFetch = async (endpoint: string, method = "GET", body?: any) => {
         throw new Error("Admin authentication failed");
     }
 
-    const data = await response.json();
+    const raw = await response.text();
+    let data: Record<string, unknown> = {};
+    if (raw.trim()) {
+        try {
+            data = JSON.parse(raw) as Record<string, unknown>;
+        } catch {
+            if (!response.ok) {
+                throw new Error(raw.slice(0, 200) || `Request failed (${response.status})`);
+            }
+        }
+    }
 
     if (!response.ok) {
-        throw new Error(data.detail || "Admin API error");
+        const detail = data?.detail;
+        let msg = "Admin API error";
+        if (typeof detail === "string") msg = detail;
+        else if (Array.isArray(detail)) {
+            msg = detail
+                .map((d: { msg?: string }) => (typeof d?.msg === "string" ? d.msg : JSON.stringify(d)))
+                .join(". ");
+        } else if (detail != null && typeof detail === "object" && "msg" in detail) {
+            msg = String((detail as { msg: string }).msg);
+        }
+        throw new Error(msg || `Request failed (${response.status})`);
     }
 
     return data;

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Any, Dict
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -194,6 +194,29 @@ class PaginatedMeetingsResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+    # When true, the account has more meetings than the free tier shows (upgrade to see all).
+    has_more_meetings_on_account: bool = False
+
+
+class BulkDeleteMeetingsRequest(BaseModel):
+    """Pro-only: delete multiple meetings owned by the current user."""
+
+    meeting_ids: List[UUID] = Field(..., min_length=1, max_length=100)
+
+
+class GroupedAnalysisRunRequest(BaseModel):
+    """Run combined AI analysis on 2–25 meetings (Pro)."""
+
+    meeting_ids: List[UUID] = Field(..., min_length=2, max_length=25)
+
+
+class GroupedAnalysisSaveRequest(BaseModel):
+    """Persist a grouped analysis (typically after a successful run)."""
+
+    meeting_ids: List[UUID] = Field(..., min_length=2, max_length=25)
+    analysis: Dict[str, Any]
+    title: Optional[str] = Field(None, max_length=500)
+
 
 class SpeakerNameUpdate(BaseModel):
     old_speaker_name: str

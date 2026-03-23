@@ -5,6 +5,8 @@ from database.connection import get_db
 from api.models.user import User
 from api.models.meeting import MeetingRecord, TranscriptionStatus
 from api.models.pro_subscription import ProSubscription
+from api.models.speaker_profile import SpeakerProfile
+from api.models.template import Template
 from api.schemas.user import UserCreate, UserResponse
 from api.services.auth_service import get_password_hash
 from config.settings import settings
@@ -276,17 +278,38 @@ async def delete_user(
     db: Session = Depends(get_db),
     _: bool = Depends(verify_admin_key)
 ):
-    """Admin: Delete a user and all their data"""
+    """Admin: Delete a user and all related rows (meetings, pro, profiles, dashboards cascade)."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Delete all meetings
-    db.query(MeetingRecord).filter(MeetingRecord.user_id == user_id).delete()
-    db.delete(user)
-    db.commit()
-    logger.info(f"🗑️ Admin deleted user: {user.email} (ID: {user.id})")
-    return {"status": "ok", "message": f"User {user.email} deleted"}
+    email = user.email
+    try:
+        # Clear optional FKs from shared tables
+        db.query(Template).filter(Template.created_by == user_id).update(
+            {Template.created_by: None}, synchronize_session=False
+        )
+        db.query(ProSubscription).filter(ProSubscription.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(SpeakerProfile).filter(SpeakerProfile.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(MeetingRecord).filter(MeetingRecord.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.delete(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.exception(f"Failed to delete user {user_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not delete user (database constraint). Check server logs.",
+        )
+
+    logger.info(f"🗑️ Admin deleted user: {email} (ID: {user_id})")
+    return {"status": "ok", "message": f"User {email} deleted"}
 
 
 # ──────────────────────────────────────────

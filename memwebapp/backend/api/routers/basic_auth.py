@@ -141,11 +141,43 @@ async def revoke_pro_subscription(
 @router.post("/users/", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """
-    Public user registration – DISABLED.
-    User accounts are now created exclusively via the Admin Dashboard.
+    Public self-service registration. Creates the same User row as admin-created accounts
+    (auth_provider=self_service). Disabled when PUBLIC_SIGNUP_ENABLED=false.
     """
-    logger.warning(f"🚫 Public signup attempt blocked for: {user.email}")
-    raise HTTPException(
-        status_code=403,
-        detail="Public registration is disabled. Please contact your administrator."
+    if not settings.PUBLIC_SIGNUP_ENABLED:
+        logger.warning(f"🚫 Public signup disabled; blocked: {user.email}")
+        raise HTTPException(
+            status_code=403,
+            detail="Public registration is disabled. Please contact your administrator.",
+        )
+
+    email_norm = (user.email or "").strip().lower()
+    if not email_norm:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    pwd = (user.password or "").strip()
+    if len(pwd) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if len(pwd) > 256:
+        raise HTTPException(status_code=400, detail="Password is too long")
+
+    existing = db.query(User).filter(User.email == email_norm).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
+
+    name = (user.name or "").strip() or email_norm.split("@")[0]
+    if len(name) > 200:
+        name = name[:200]
+
+    new_user = User(
+        email=email_norm,
+        name=name,
+        password_hash=get_password_hash(pwd),
+        auth_provider="self_service",
+        is_active=True,
     )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    logger.info(f"✅ Self-service signup: {new_user.email} (id={new_user.id})")
+    return new_user

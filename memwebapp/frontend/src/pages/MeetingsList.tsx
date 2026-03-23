@@ -1,9 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar as CalendarIcon, Clock, RefreshCw, Trash2, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut, LayoutTemplate, Video, Users, Smartphone, Layers, MessageSquareText, Zap, ShieldCheck, Chrome, CalendarPlus, ExternalLink, Menu, Lock } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Clock, RefreshCw, Mic, CheckCircle2, Loader2, AlertCircle, Brain, ChevronRight, Activity, LogOut, LayoutTemplate, Video, Users, Smartphone, Layers, MessageSquareText, Zap, ShieldCheck, Chrome, CalendarPlus, ExternalLink, Menu, Lock, Trash2, ListChecks, Layers2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getMeetings, deleteMeeting, formatMeetingDate, formatDuration, type Meeting } from '@/services/meetingApi';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+    getMeetings,
+    deleteMeetingsBulk,
+    runGroupedMeetingAnalysis,
+    saveGroupedMeetingAnalysis,
+    formatMeetingDate,
+    formatDuration,
+    type Meeting,
+    type GroupedAnalysisData,
+} from '@/services/meetingApi';
+import { GroupedAnalysisViewer } from '@/components/GroupedAnalysisViewer';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import ChatBot from '@/components/ChatBot';
@@ -35,28 +56,44 @@ const MeetingsList: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [perPage] = useState(12);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+    const [hasMoreMeetingsOnAccount, setHasMoreMeetingsOnAccount] = useState(false);
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+    const [groupedSheetOpen, setGroupedSheetOpen] = useState(false);
+    const [groupedLoading, setGroupedLoading] = useState(false);
+    const [groupedSaving, setGroupedSaving] = useState(false);
+    const [groupedAnalysis, setGroupedAnalysis] = useState<GroupedAnalysisData | null>(null);
+    const [groupedMeetingIds, setGroupedMeetingIds] = useState<string[]>([]);
+    const [groupedSaveTitle, setGroupedSaveTitle] = useState('');
     const { user, isPro, logout } = useAuth();
 
     // Pro state
     const [showPromoDialog, setShowPromoDialog] = useState(false);
     const [promoCode, setPromoCode] = useState('');
     const [showTransition, setShowTransition] = useState(false);
+    const [isActivating, setIsActivating] = useState(false);
 
     const handleUnlock = async () => {
+        if (isActivating || !promoCode.trim()) return;
+        setIsActivating(true);
         try {
             const { activatePro } = await import('@/services/api');
             const result = await activatePro(promoCode.trim());
-            if (!result.error) {
+            if (result?.success) {
                 setShowPromoDialog(false);
+                setPromoCode('');
                 setShowTransition(true);
                 setTimeout(() => setShowTransition(false), 3000);
                 toast.success("Premium features unlocked!");
             } else {
-                toast.error(result.detail || result.error || "Invalid promo code.");
+                toast.error(result?.error || "Invalid promo code.");
             }
         } catch (e: any) {
             toast.error(e.message || "Failed to unlock pro features.");
+        } finally {
+            setIsActivating(false);
         }
     };
 
@@ -85,6 +122,7 @@ const MeetingsList: React.FC = () => {
             } else {
                 setMeetings(result.data || []);
                 setTotalPages(result.total_pages || 1);
+                setHasMoreMeetingsOnAccount(result.has_more_meetings_on_account === true);
             }
         } catch (error) {
             toast.error('Error loading meetings');
@@ -92,6 +130,18 @@ const MeetingsList: React.FC = () => {
             if (!silent) setIsLoading(false);
         }
     }, [currentPage, perPage, statusFilter, searchQuery]);
+
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [currentPage]);
+
+    useEffect(() => {
+        if (!isPro) {
+            setSelectionMode(false);
+            setSelectedIds(new Set());
+            setShowBulkDeleteConfirm(false);
+        }
+    }, [isPro]);
 
     useEffect(() => {
         fetchMeetings();
@@ -105,22 +155,88 @@ const MeetingsList: React.FC = () => {
         return () => clearTimeout(timeout);
     }, [searchQuery]);
 
-    const handleDelete = async (meetingId: string) => {
-        // Optimistic update to prevent flicker
-        const originalMeetings = [...meetings];
-        setMeetings(prev => prev.filter(m => String(m.id) !== meetingId));
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
-        const result = await deleteMeeting(meetingId);
-        if ('error' in result) {
-            toast.error('Failed to delete meeting');
-            // Rollback on error
-            setMeetings(originalMeetings);
-        } else {
-            toast.success('Meeting deleted');
-            setShowDeleteConfirm(null);
-            // Silent refresh to ensure pagination and total counts are correct
-            fetchMeetings(true);
+    const pageMeetingIds = meetings.map(m => String(m.id));
+    const allPageSelected =
+        pageMeetingIds.length > 0 && pageMeetingIds.every(id => selectedIds.has(id));
+
+    const toggleSelectAllOnPage = () => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (allPageSelected) {
+                pageMeetingIds.forEach(id => next.delete(id));
+            } else {
+                pageMeetingIds.forEach(id => next.add(id));
+            }
+            return next;
+        });
+    };
+
+    const exitSelectionMode = () => {
+        setSelectionMode(false);
+        setSelectedIds(new Set());
+    };
+
+    const runGroupedAnalysis = async () => {
+        const ids = Array.from(selectedIds);
+        if (ids.length < 2) {
+            toast.error('Select at least two meetings');
+            return;
         }
+        setGroupedLoading(true);
+        setGroupedAnalysis(null);
+        setGroupedMeetingIds(ids);
+        setGroupedSheetOpen(true);
+        const res = await runGroupedMeetingAnalysis(ids);
+        setGroupedLoading(false);
+        if ('error' in res) {
+            toast.error(typeof res.error === 'string' ? res.error : 'Analysis failed');
+            setGroupedSheetOpen(false);
+            return;
+        }
+        setGroupedAnalysis(res.analysis);
+        setGroupedMeetingIds(res.meeting_ids?.length ? res.meeting_ids : ids);
+    };
+
+    const handleSaveGroupedAnalysis = async () => {
+        if (!groupedAnalysis || groupedMeetingIds.length < 2) return;
+        setGroupedSaving(true);
+        const res = await saveGroupedMeetingAnalysis({
+            meeting_ids: groupedMeetingIds,
+            analysis: groupedAnalysis,
+            title: groupedSaveTitle.trim() || undefined,
+        });
+        setGroupedSaving(false);
+        if ('error' in res) {
+            toast.error(typeof res.error === 'string' ? res.error : 'Save failed');
+            return;
+        }
+        toast.success('Saved to Grouped meeting analysis');
+        setGroupedSaveTitle('');
+    };
+
+    const handleBulkDeleteConfirm = async () => {
+        const ids = Array.from(selectedIds);
+        if (!ids.length) return;
+        setBulkDeleting(true);
+        const result = await deleteMeetingsBulk(ids);
+        setBulkDeleting(false);
+        setShowBulkDeleteConfirm(false);
+        if ('error' in result) {
+            toast.error(typeof result.error === 'string' ? result.error : 'Failed to delete meetings');
+            return;
+        }
+        toast.success(result.message || `Deleted ${result.deleted} meeting(s)`);
+        exitSelectionMode();
+        fetchMeetings(true);
     };
 
     const getStatusBadge = (status: string) => {
@@ -172,8 +288,8 @@ const MeetingsList: React.FC = () => {
                             placeholder="Enter promo code"
                             className="h-12 border-slate-200 rounded-xl"
                         />
-                        <Button onClick={handleUnlock} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-12 rounded-xl font-bold text-lg">
-                            Unlock Now
+                        <Button onClick={handleUnlock} disabled={isActivating || !promoCode.trim()} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-12 rounded-xl font-bold text-lg disabled:opacity-60">
+                            {isActivating ? 'Activating...' : 'Unlock Now'}
                         </Button>
                     </div>
                 </DialogContent>
@@ -237,9 +353,156 @@ const MeetingsList: React.FC = () => {
                         >
                             <RefreshCw className="h-4 w-4 text-slate-600" />
                         </Button>
+
+                        {isPro && (
+                            <Button
+                                variant={selectionMode ? 'default' : 'outline'}
+                                onClick={() => (selectionMode ? exitSelectionMode() : setSelectionMode(true))}
+                                className={`h-12 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest flex-shrink-0 ${selectionMode ? 'bg-[#1B2BB8] hover:bg-blue-800 text-white' : 'border-slate-200 bg-white/80 backdrop-blur-sm'}`}
+                            >
+                                <ListChecks className="h-4 w-4 mr-2" />
+                                {selectionMode ? 'Done' : 'Select'}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {isPro && selectionMode && meetings.length > 0 && (
+                <div className="relative z-10 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm p-4 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-bold text-slate-800">
+                            {selectedIds.size} selected
+                        </span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#1B2BB8] font-semibold h-9 rounded-xl"
+                            onClick={toggleSelectAllOnPage}
+                        >
+                            {allPageSelected ? 'Deselect page' : 'Select page'}
+                        </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            disabled={selectedIds.size < 2 || groupedLoading}
+                            onClick={() => void runGroupedAnalysis()}
+                        >
+                            {groupedLoading ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Layers2 className="h-4 w-4 mr-2" />
+                            )}
+                            Analyze group
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                            disabled={selectedIds.size === 0 || bulkDeleting}
+                            onClick={() => setShowBulkDeleteConfirm(true)}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete selected
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <Sheet
+                open={groupedSheetOpen}
+                onOpenChange={open => {
+                    setGroupedSheetOpen(open);
+                    if (!open) {
+                        setGroupedAnalysis(null);
+                        setGroupedSaveTitle('');
+                    }
+                }}
+            >
+                <SheetContent
+                    side="right"
+                    className="w-full sm:max-w-xl md:max-w-2xl overflow-y-auto border-slate-200 bg-white"
+                >
+                    <SheetHeader className="mb-4">
+                        <SheetTitle className="text-xl font-bold text-slate-900 pr-8">
+                            Grouped meeting analysis
+                        </SheetTitle>
+                    </SheetHeader>
+                    {groupedLoading && (
+                        <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500">
+                            <Loader2 className="h-10 w-10 animate-spin text-[#1B2BB8]" />
+                            <p className="text-sm font-medium">Analyzing {groupedMeetingIds.length} meetings…</p>
+                        </div>
+                    )}
+                    {!groupedLoading && groupedAnalysis && (
+                        <>
+                            <div className="space-y-4 mb-6 pb-6 border-b border-slate-100">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                                    Title (optional)
+                                </label>
+                                <Input
+                                    placeholder="e.g. Q1 discovery calls — Acme"
+                                    value={groupedSaveTitle}
+                                    onChange={e => setGroupedSaveTitle(e.target.value)}
+                                    className="rounded-xl border-slate-200"
+                                />
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        type="button"
+                                        className="rounded-xl bg-[#1B2BB8] hover:bg-blue-800"
+                                        disabled={groupedSaving}
+                                        onClick={() => void handleSaveGroupedAnalysis()}
+                                    >
+                                        {groupedSaving ? 'Saving…' : 'Save to library'}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="rounded-xl border-slate-200"
+                                        onClick={() => navigate('/tools/grouped-meeting-analysis')}
+                                    >
+                                        Open saved list
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-slate-400">
+                                    Saved analyses appear under Apps & tools → Grouped meeting analysis.
+                                </p>
+                            </div>
+                            <GroupedAnalysisViewer analysis={groupedAnalysis} />
+                        </>
+                    )}
+                </SheetContent>
+            </Sheet>
+
+            <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+                <AlertDialogContent className="rounded-2xl border-slate-200">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {selectedIds.size} meeting(s)?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This permanently removes the selected meetings and their audio from your library. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl" disabled={bulkDeleting}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <Button
+                            variant="destructive"
+                            className="rounded-xl"
+                            disabled={bulkDeleting}
+                            onClick={() => void handleBulkDeleteConfirm()}
+                        >
+                            {bulkDeleting ? 'Deleting…' : 'Delete meetings'}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Limit Banner */}
             {(!isPro && meetings.length >= 10) && (
@@ -258,6 +521,26 @@ const MeetingsList: React.FC = () => {
                         onClick={() => setShowPromoDialog(true)}
                     >
                         Unlock Pro Now
+                    </Button>
+                </div>
+            )}
+
+            {!isPro && hasMoreMeetingsOnAccount && (
+                <div className="relative z-10 mb-8 bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Layers className="h-8 w-8 text-amber-600 shrink-0" />
+                        <div>
+                            <h3 className="text-sm font-bold text-amber-900">More meetings on your account</h3>
+                            <p className="text-xs font-medium text-amber-800 mt-0.5">
+                                Your plan shows your 10 most recent meetings. Upgrade to Pro to see and manage your full library (including delete).
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl whitespace-nowrap px-5"
+                        onClick={() => setShowPromoDialog(true)}
+                    >
+                        Upgrade
                     </Button>
                 </div>
             )}
@@ -347,14 +630,54 @@ const MeetingsList: React.FC = () => {
                     ) : (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {meetings.map((meeting) => (
+                                {meetings.map((meeting) => {
+                                    const mid = String(meeting.id);
+                                    const isSelected = selectedIds.has(mid);
+                                    return (
                                     <div
                                         key={meeting.id}
-                                        onClick={() => navigate(`/meetings/${meeting.id}`)}
-                                        className="group relative bg-white transition-all duration-300 hover:shadow-xl hover:border-blue-200 rounded-3xl border border-slate-200 p-6 cursor-pointer overflow-hidden"
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                if (selectionMode) toggleSelect(mid);
+                                                else navigate(`/meetings/${meeting.id}`);
+                                            }
+                                        }}
+                                        onClick={() => {
+                                            if (selectionMode) toggleSelect(mid);
+                                            else navigate(`/meetings/${meeting.id}`);
+                                        }}
+                                        className={`group relative bg-white transition-all duration-300 hover:shadow-xl hover:border-blue-200 rounded-3xl border p-6 cursor-pointer overflow-hidden ${
+                                            selectionMode && isSelected
+                                                ? 'border-[#1B2BB8] ring-2 ring-[#1B2BB8]/30 shadow-lg'
+                                                : 'border-slate-200'
+                                        }`}
                                     >
+                                        {selectionMode && isPro && (
+                                            <div
+                                                className="absolute top-4 right-4 z-20"
+                                                onClick={e => e.stopPropagation()}
+                                                onKeyDown={e => e.stopPropagation()}
+                                            >
+                                                <Checkbox
+                                                    checked={isSelected}
+                                                    onCheckedChange={v => {
+                                                        setSelectedIds(prev => {
+                                                            const next = new Set(prev);
+                                                            if (v === true) next.add(mid);
+                                                            else next.delete(mid);
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    className="h-5 w-5 border-slate-300 data-[state=checked]:bg-[#1B2BB8] data-[state=checked]:border-[#1B2BB8]"
+                                                    aria-label={isSelected ? 'Deselect meeting' : 'Select meeting'}
+                                                />
+                                            </div>
+                                        )}
                                         <div className="relative z-10 flex flex-col h-full">
-                                            <div className="flex justify-between items-start mb-4">
+                                            <div className="flex justify-between items-start mb-4 pr-10">
                                                 <div className="flex flex-wrap gap-2">
                                                     {getStatusBadge(meeting.status)}
                                                     {meeting.platform && PLATFORM_CONFIG[meeting.platform] && (
@@ -394,7 +717,8 @@ const MeetingsList: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {totalPages > 1 && (

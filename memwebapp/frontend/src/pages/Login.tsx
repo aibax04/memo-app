@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,8 +122,16 @@ const Login: React.FC = () => {
         </Button>
       </form>
 
-      <div className="mt-8 text-center">
+      <p className="mt-6 text-center text-sm text-slate-600">
+        New to Memo?{" "}
+        <Link to="/register" className="font-bold text-[#1B2BB8] hover:text-blue-800 transition-colors">
+          Create an account
+        </Link>
+      </p>
+
+      <div className="mt-6 text-center">
         <button
+          type="button"
           onClick={() => navigate("/admin")}
           className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors font-medium"
         >

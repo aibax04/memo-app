@@ -113,7 +113,44 @@ class FlatMeetingAnalytics:
                 logger.error(f"❌ [Sentiment] Using defaults: neutral, 5.0")
             
             logger.info(f"📝 [Sentiment] Final extracted values - sentiment: '{sentiment_value}', score: {sentiment_score_value}")
-            
+
+            # Extract technical product analysis with safe fallbacks
+            tech_is_product_value = False
+            tech_focus_score_value = 0
+            tech_product_or_platform_value = "unknown"
+            tech_product_summary_value = ""
+            tech_key_terms_value: List[str] = []
+            tech_architecture_components_value: List[str] = []
+            tech_integration_points_value: List[str] = []
+            tech_constraints_assumptions_value: List[str] = []
+            tech_risks_and_gaps_value: List[str] = []
+            tech_questions_for_engineering_value: List[str] = []
+            tech_recommended_next_steps_value: List[str] = []
+            tech_detailed_technical_analysis_value = ""
+
+            try:
+                tech_data = analytics_data.get("tech_product_analysis") or {}
+                tech_is_product_value = bool(tech_data.get("is_tech_product", False))
+                tech_focus_score_value = tech_data.get("technical_focus_score", 0) or 0
+                tech_product_or_platform_value = tech_data.get("product_or_platform", "unknown") or "unknown"
+                tech_product_summary_value = tech_data.get("technical_product_summary", "") or ""
+
+                def _as_list(v: Any) -> List[str]:
+                    if isinstance(v, list):
+                        return [x for x in v if isinstance(x, str)]
+                    return []
+
+                tech_key_terms_value = _as_list(tech_data.get("key_technical_terms"))
+                tech_architecture_components_value = _as_list(tech_data.get("architecture_components"))
+                tech_integration_points_value = _as_list(tech_data.get("integration_points"))
+                tech_constraints_assumptions_value = _as_list(tech_data.get("constraints_and_assumptions"))
+                tech_risks_and_gaps_value = _as_list(tech_data.get("risks_and_gaps"))
+                tech_questions_for_engineering_value = _as_list(tech_data.get("questions_for_engineering"))
+                tech_recommended_next_steps_value = _as_list(tech_data.get("recommended_next_steps"))
+                tech_detailed_technical_analysis_value = tech_data.get("detailed_technical_analysis", "") or ""
+            except Exception as e:
+                logger.warning(f"⚠️ [Tech] Failed to extract tech_product_analysis: {e}")
+
             # Create single flat JSON object
             flat_analytics = {
                 # Meeting identification
@@ -187,6 +224,20 @@ class FlatMeetingAnalytics:
                 # Meeting Sentiment (2 fields)
                 "sentiment": sentiment_value,
                 "sentiment_score": sentiment_score_value,
+
+                # Technical Overview (tech-product analysis)
+                "tech_is_product": tech_is_product_value,
+                "tech_focus_score": tech_focus_score_value,
+                "tech_product_or_platform": tech_product_or_platform_value,
+                "tech_product_summary": tech_product_summary_value,
+                "tech_key_technical_terms": tech_key_terms_value,
+                "tech_architecture_components": tech_architecture_components_value,
+                "tech_integration_points": tech_integration_points_value,
+                "tech_constraints_assumptions": tech_constraints_assumptions_value,
+                "tech_risks_and_gaps": tech_risks_and_gaps_value,
+                "tech_questions_for_engineering": tech_questions_for_engineering_value,
+                "tech_recommended_next_steps": tech_recommended_next_steps_value,
+                "tech_detailed_technical_analysis": tech_detailed_technical_analysis_value,
                 
                 # Metadata
                 "extraction_timestamp": datetime.now().isoformat(),
@@ -365,6 +416,23 @@ Please analyze this meeting and provide analytics in the following JSON format. 
     "sentiment": "positive|negative|neutral",
     "sentiment_score": 0-10
   }},
+  "tech_product_analysis": {{
+    "is_tech_product": true/false,
+    "technical_focus_score": 0-10,
+    "product_or_platform": "<string e.g. 'CRM platform', 'API integration', 'internal tooling', 'unknown'>",
+    "technical_product_summary": "<2-4 sentences describing what technical product/platform the meeting appears to be about>",
+
+    "key_technical_terms": ["<string>"],
+    "architecture_components": ["<string>"],
+    "integration_points": ["<string>"],
+    "constraints_and_assumptions": ["<string>"],
+
+    "risks_and_gaps": ["<string>"],
+    "questions_for_engineering": ["<string>"],
+    "recommended_next_steps": ["<string>"],
+
+    "detailed_technical_analysis": "<Detailed technical analysis as a multiline string. If is_tech_product=false: keep this empty or a single short line. If is_tech_product=true: include newline-separated sections with these headings exactly: Product context:, Architecture modules:, Integration/data flow:, Constraints & assumptions:, Risks & gaps:, Engineering questions:, Recommended next steps:. Use concrete explanations grounded in the transcript/summary (no generic filler).>"
+  }},
   "audio_insights": {{
     "key_moments": ["list", "of", "notable", "moments"],
     "notable_silences_count": number,
@@ -381,13 +449,28 @@ Analysis Guidelines:
 5. Professional Behavior: Assess etiquette, camera usage, respect, and follow-through
 6. Security: Check for access controls, confidentiality, recording policies, and data sharing
 7. Outcomes: Evaluate meeting minutes, action tracking, feedback, and overall ROI
-8. Sentiment Analysis: Analyze the overall emotional tone and sentiment of the meeting. Consider:
+8. Technical Product Analysis: Determine whether this meeting is about a technical product/platform (APIs, architecture, integrations, systems design, tooling, requirements, deployments, performance, security controls, etc.).
+   - Strong detection rule: if the transcript/summary contains ANY of these (case-insensitive) then set `is_tech_product=true`:
+     `api, endpoint, integration, architecture, system design, microservice, microservices, database, schema, sql, postgres, redis, kafka, event, webhook, oauth, oauth2, jwt, sso, auth, authorization, deployment, kubernetes, docker, terraform, performance, latency, caching, rate limit, rate limiting, encryption, security, sla, scaling, load, monitoring, observability`
+   - If it IS about a tech product/platform:
+     - Set `is_tech_product=true` and set `technical_focus_score` high (7-10) when there are concrete technical details
+     - Fill `key_technical_terms`, `architecture_components`, `integration_points`, `constraints_and_assumptions`, `risks_and_gaps`, `questions_for_engineering`, `recommended_next_steps`
+     - `technical_product_summary` must be 2-4 sentences describing the product/platform and the engineering context
+     - `detailed_technical_analysis` must be detailed and include at least:
+       1) the likely components/modules involved
+       2) the integration points and data flow (what talks to what)
+       3) concrete risks/gaps mentioned or implied in the transcript
+       4) engineering questions and next steps
+   - If it is NOT about a tech product/platform:
+     - Set `is_tech_product=false` and set `technical_focus_score` low (0-3)
+     - Keep `detailed_technical_analysis` empty or very short, and use empty arrays for lists.
+9. Sentiment Analysis: Analyze the overall emotional tone and sentiment of the meeting. Consider:
    - Positive indicators: enthusiasm, agreement, appreciation, constructive feedback, successful resolutions, collaborative spirit, optimism
    - Negative indicators: frustration, disagreement, complaints, conflicts, unresolved issues, tension, pessimism
    - Neutral indicators: factual discussions, routine updates, standard procedures, balanced exchanges
    - Score interpretation: 7-10 = positive, 4-6 = neutral, 0-3 = negative
    - The sentiment label should match the score: positive (7-10), neutral (4-6), negative (0-3)
-9. Audio Insights: Identify key moments, notable silences, energy shifts, and notable speech patterns (e.g., filler words, articulation, rhetorical questions)
+10. Audio Insights: Identify key moments, notable silences, energy shifts, and notable speech patterns (e.g., filler words, articulation, rhetorical questions)
 
 Provide only the JSON response, no additional text or explanations.
 """

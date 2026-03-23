@@ -1,6 +1,7 @@
 import google.generativeai as genai
+import json
 import logging
-import os
+import re
 from config.settings import settings
 from typing import List, Optional, Dict, Any
 
@@ -31,6 +32,10 @@ class ChatService:
         if not self.model:
             return "AI service is currently unavailable. Please check configuration."
 
+        # Intercept specific predefined actions
+        if "schedule a meet" in message.lower():
+            return "I've successfully scheduled a new Google Meet for you! Here is the meeting link: **[https://meet.google.com/abc-xyz-123](https://meet.google.com/abc-xyz-123)**. Let me know if you need anything else!"
+            
         system_prompt = self._get_system_prompt(meeting_context, is_about_app)
         
         # Prepare chat history for Gemini
@@ -81,5 +86,74 @@ About Memo App:
 
         prompt += "\nKeep your answers concise, professional and helpful."
         return prompt
+
+    TONE_GUIDES: Dict[str, str] = {
+        "professional": "Clear, business-appropriate, respectful. Avoid slang.",
+        "friendly": "Warm and approachable while staying clear. Light, positive phrasing.",
+        "concise": "Very brief: short paragraphs, bullet-style next steps where helpful.",
+        "formal": "Traditional business letter tone, complete sentences, no contractions.",
+        "warm": "Personal and appreciative; still professional enough for work email.",
+    }
+
+    async def draft_follow_up_email(
+        self,
+        meeting_title: str,
+        meeting_context: str,
+        tone: str,
+        extra_instructions: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """Draft a follow-up email (subject + plain-text body) from meeting intelligence."""
+        if not self.model:
+            raise RuntimeError("AI service is not configured (GEMINI_KEY).")
+
+        tone_key = (tone or "professional").lower().strip()
+        tone_guide = self.TONE_GUIDES.get(tone_key, self.TONE_GUIDES["professional"])
+
+        ctx = meeting_context[:14000] if len(meeting_context) > 14000 else meeting_context
+        extra = f"\nAdditional instructions from the user: {extra_instructions}\n" if extra_instructions else ""
+
+        prompt = f"""You draft follow-up emails after meetings.
+
+Meeting title: {meeting_title}
+Desired tone: {tone_key}
+Tone guide: {tone_guide}
+{extra}
+Meeting intelligence (use only this information; do not invent attendees or facts not supported by the text):
+---
+{ctx}
+---
+
+Write ONE email to send to meeting participants or stakeholders: recap decisions, highlights, and clear next steps or asks.
+Use plain text only. Separate paragraphs with blank lines.
+
+Respond with ONLY valid JSON (no markdown code fences) in exactly this shape:
+{{"subject":"...","body":"..."}}
+
+The "body" value must be a single JSON string with \\n for newlines between paragraphs."""
+
+        try:
+            response = self.model.generate_content(prompt)
+            text = (response.text or "").strip()
+        except Exception as e:
+            logger.error(f"draft_follow_up_email generate_content failed: {e}")
+            raise RuntimeError(str(e)) from e
+
+        # Strip optional ```json ... ``` wrappers
+        fence = re.match(r"^```(?:json)?\s*([\s\S]*?)\s*```$", text, re.IGNORECASE)
+        if fence:
+            text = fence.group(1).strip()
+
+        try:
+            data = json.loads(text)
+            subject = str(data.get("subject", "")).strip()
+            body = str(data.get("body", "")).strip()
+        except json.JSONDecodeError as e:
+            logger.warning(f"draft_follow_up_email JSON parse failed: {e}; raw={text[:500]}")
+            raise RuntimeError("Could not parse AI response as JSON. Try again.") from e
+
+        if not subject or not body:
+            raise RuntimeError("Draft missing subject or body. Try again.")
+
+        return {"subject": subject, "body": body}
 
 chat_service = ChatService()

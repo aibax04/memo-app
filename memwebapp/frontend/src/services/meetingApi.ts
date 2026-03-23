@@ -46,6 +46,8 @@ export interface PaginatedMeetings {
     page: number;
     limit: number;
     total_pages: number;
+    /** True when a free account has more meetings than the 10 shown (upgrade to see all). */
+    has_more_meetings_on_account?: boolean;
 }
 
 // Fetch all meetings with optional filters
@@ -81,6 +83,23 @@ export const getMeeting = async (meetingId: string): Promise<Meeting | { error: 
     return result as Meeting;
 };
 
+export type EmailDraftTone = 'professional' | 'friendly' | 'concise' | 'formal' | 'warm';
+
+/** AI draft of a follow-up email from meeting intelligence (uses Gemini on the server). */
+export const draftFollowUpEmail = async (
+    meetingId: string,
+    opts: { tone: EmailDraftTone; extra_instructions?: string | null }
+): Promise<{ success: boolean; subject: string; body: string } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/${meetingId}/draft-follow-up-email`, 'POST', {
+        tone: opts.tone,
+        extra_instructions: opts.extra_instructions?.trim() || null,
+    });
+    if (result?.error) {
+        return { error: typeof result.error === 'string' ? result.error : 'Failed to draft email' };
+    }
+    return result as { success: boolean; subject: string; body: string };
+};
+
 // Get audio URL for a meeting
 export const getMeetingAudioUrl = async (meetingId: string): Promise<{ download_url: string; expires_in: number; filename: string } | { error: string }> => {
     const result = await callApi(`${API_PREFIX}/meetings/${meetingId}/audio/url`);
@@ -97,6 +116,114 @@ export const deleteMeeting = async (meetingId: string): Promise<{ status: string
         return { error: result.error };
     }
     return result;
+};
+
+/** Pro-only: delete multiple meetings in one request. */
+export const deleteMeetingsBulk = async (
+    meetingIds: string[]
+): Promise<{ status: string; deleted: number; requested: number; message: string } | { error: string }> => {
+    if (!meetingIds.length) {
+        return { error: 'No meetings selected' };
+    }
+    const result = await callApi(`${API_PREFIX}/meetings/bulk-delete`, 'POST', {
+        meeting_ids: meetingIds,
+    });
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result as { status: string; deleted: number; requested: number; message: string };
+};
+
+/** Combined AI analysis JSON (shape from Gemini). */
+export type GroupedAnalysisData = Record<string, unknown>;
+
+export const runGroupedMeetingAnalysis = async (
+    meetingIds: string[]
+): Promise<
+    | { success: boolean; analysis: GroupedAnalysisData; meeting_ids: string[] }
+    | { error: string }
+> => {
+    if (meetingIds.length < 2) {
+        return { error: 'Select at least two meetings' };
+    }
+    const result = await callApi(`${API_PREFIX}/meetings/grouped-analysis/run`, 'POST', {
+        meeting_ids: meetingIds,
+    });
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result as { success: boolean; analysis: GroupedAnalysisData; meeting_ids: string[] };
+};
+
+export const saveGroupedMeetingAnalysis = async (opts: {
+    meeting_ids: string[];
+    analysis: GroupedAnalysisData;
+    title?: string;
+}): Promise<{ success: boolean; id: string; title: string } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/grouped-analysis/save`, 'POST', {
+        meeting_ids: opts.meeting_ids,
+        analysis: opts.analysis,
+        title: opts.title?.trim() || undefined,
+    });
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result as { success: boolean; id: string; title: string };
+};
+
+export const listSavedGroupedAnalyses = async (): Promise<
+    | {
+          items: Array<{
+              id: string;
+              title: string | null;
+              meeting_count: number;
+              created_at: string | null;
+          }>;
+      }
+    | { error: string }
+> => {
+    const result = await callApi(`${API_PREFIX}/meetings/grouped-analysis/saved`);
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result as {
+        items: Array<{ id: string; title: string | null; meeting_count: number; created_at: string | null }>;
+    };
+};
+
+export const getSavedGroupedAnalysis = async (
+    id: string
+): Promise<
+    | {
+          id: string;
+          title: string | null;
+          meeting_ids: string[];
+          analysis: GroupedAnalysisData;
+          created_at: string | null;
+      }
+    | { error: string }
+> => {
+    const result = await callApi(`${API_PREFIX}/meetings/grouped-analysis/saved/${id}`);
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result as {
+        id: string;
+        title: string | null;
+        meeting_ids: string[];
+        analysis: GroupedAnalysisData;
+        created_at: string | null;
+    };
+};
+
+export const deleteSavedGroupedAnalysis = async (
+    id: string
+): Promise<{ success: boolean } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/grouped-analysis/saved/${id}`, 'DELETE');
+    if (result?.error) {
+        return { error: result.error };
+    }
+    return result as { success: boolean };
 };
 
 // Reprocess a meeting
@@ -157,6 +284,55 @@ export const getMeetingsBySpeaker = async (speakerName: string): Promise<{ items
         return { error: result.error };
     }
     return result;
+};
+
+export interface BuyerIntentData {
+    meeting_type: string;
+    meeting_type_confidence: number;
+    purchase_readiness: number;
+    purchase_readiness_label: string;
+    emotional_arc: { phase: string; emotion: string; intensity: number; note: string }[];
+    buyer_signals: { type: string; signal: string; quote: string; weight: number }[];
+    question_analysis: {
+        total_questions: number;
+        focused_questions: number;
+        irregular_questions: number;
+        top_concerns: string[];
+        off_topic_flags: string[];
+        curiosity_score: number;
+    };
+    participant_emotions: {
+        name: string;
+        role_guess: string;
+        dominant_emotion: string;
+        engagement_level: number;
+        interest_trend: string;
+        key_moments: string[];
+    }[];
+    tone_summary: string;
+    follow_up_recommendation: {
+        priority: string;
+        suggested_action: string;
+        timing: string;
+        risk_level: string;
+    };
+    deal_health: {
+        score: number;
+        label: string;
+        blockers: string[];
+        accelerators: string[];
+    };
+}
+
+/** Run AI buyer-intent analysis for a meeting. */
+export const analyseBuyerIntent = async (
+    meetingId: string
+): Promise<{ success: boolean; data: BuyerIntentData } | { error: string }> => {
+    const result = await callApi(`${API_PREFIX}/meetings/${meetingId}/buyer-intent`, 'POST');
+    if (result?.error) {
+        return { error: typeof result.error === 'string' ? result.error : 'Analysis failed' };
+    }
+    return result as { success: boolean; data: BuyerIntentData };
 };
 
 // Helper: Format duration from minutes

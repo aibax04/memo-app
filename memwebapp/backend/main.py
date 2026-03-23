@@ -19,6 +19,7 @@ from api.models.template import Template  # Import Template model to create tabl
 from api.models.dashboard import Dashboard  # Import Dashboard model to create table
 from api.models.chart import Chart  # Import Chart model to create table
 from api.models.pro_subscription import ProSubscription  # Import ProSubscription model to create table
+from api.models.grouped_meeting_analysis import GroupedMeetingAnalysis  # noqa: F401 — register table
 from api.services.background_transcription_service import background_service
 from api.services.watchdog_service import watchdog_service
 

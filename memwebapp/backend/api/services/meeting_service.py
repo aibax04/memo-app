@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, String
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Set
 from uuid import UUID
 from datetime import datetime
 from api.models.meeting import MeetingRecord, TranscriptionStatus, AnalyticsStatus
@@ -15,6 +15,36 @@ from api.services.ai_suggestion_service import ai_suggestion_service
 from api.services.template_service import get_template
 
 logger = logging.getLogger(__name__)
+
+# Non-Pro users may only list and open their N most recent meetings (same cap as recording limit).
+FREE_TIER_VISIBLE_MEETING_CAP = 10
+
+
+def user_has_active_pro(db: Session, user_id: int) -> bool:
+    from api.models.pro_subscription import ProSubscription
+
+    sub = (
+        db.query(ProSubscription)
+        .filter(
+            ProSubscription.user_id == user_id,
+            ProSubscription.is_active.is_(True),
+        )
+        .first()
+    )
+    return sub is not None
+
+
+def get_free_tier_visible_meeting_ids(db: Session, user_id: int) -> List[UUID]:
+    """Meeting IDs visible to a free-tier user (newest first, capped)."""
+    rows = (
+        db.query(MeetingRecord.id)
+        .filter(MeetingRecord.user_id == user_id)
+        .order_by(MeetingRecord.created_at.desc())
+        .limit(FREE_TIER_VISIBLE_MEETING_CAP)
+        .all()
+    )
+    return [r[0] for r in rows]
+
 
 async def create_meeting_with_audio(
     db: Session,
@@ -228,6 +258,25 @@ def delete_meeting_record(db: Session, meeting_id: UUID) -> bool:
     db.delete(db_meeting)
     db.commit()
     return True
+
+
+def delete_meeting_records_for_user_bulk(
+    db: Session, user_id: int, meeting_ids: List[UUID]
+) -> int:
+    """
+    Delete many meetings that belong to user_id.
+    Returns the number of rows deleted (skips unknown IDs or other users' meetings).
+    """
+    if not meeting_ids:
+        return 0
+    unique_ids = list({UUID(str(x)) for x in meeting_ids})
+    deleted_count = (
+        db.query(MeetingRecord)
+        .filter(MeetingRecord.user_id == user_id, MeetingRecord.id.in_(unique_ids))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return int(deleted_count or 0)
 
 def search_meeting_records(db: Session, query: str, skip: int = 0, limit: int = 100) -> List[MeetingRecord]:
     """Search meeting records by title, participants, and transcription speaker names"""
@@ -612,7 +661,8 @@ def search_meetings_by_speaker(
     user_id: int,
     speaker_name: str,
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
+    allowed_meeting_ids: Optional[Set[UUID]] = None,
 ) -> Tuple[List[MeetingRecord], int]:
     """Search meetings by speaker name and return total count"""
     meetings = db.query(MeetingRecord).filter(MeetingRecord.user_id == user_id).all()
@@ -644,6 +694,9 @@ def search_meetings_by_speaker(
         
         if speaker_found:
             matching_meetings.append(meeting)
+
+    if allowed_meeting_ids is not None:
+        matching_meetings = [m for m in matching_meetings if m.id in allowed_meeting_ids]
     
     # Sort by created_at descending
     matching_meetings.sort(key=lambda m: m.created_at, reverse=True)

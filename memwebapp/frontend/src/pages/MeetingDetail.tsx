@@ -1,26 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Play, Pause, Download, Volume2, Clock, Calendar, Users, Search,
     FileText, BarChart3, Mic, AlertCircle, Loader2, CheckCircle2,
     RefreshCw, ChevronRight, MessageSquare, ListChecks, Lightbulb,
     TrendingUp, ThumbsUp, ThumbsDown, Minus, Trash2, Zap, Brain, Activity,
-    Shield, Target, Award, UserPlus, Info, Volume1, Waves, Video, Pencil, Lock, ShieldCheck, Map
+    Shield, Target, Award, UserPlus, Info, Volume1, Waves, Video, Pencil, Lock, ShieldCheck, Map,
+    GripVertical, PanelRightOpen, PanelRightClose, Plus, X, LayoutDashboard, Bot,
+    HeartPulse, AlertTriangle, ArrowUpRight, ArrowDownRight, ArrowRight, HelpCircle, Flame, Snowflake, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
     getMeeting, getMeetingAudioUrl, reprocessMeeting, deleteMeeting, renameSpeaker,
     updateMeeting, formatTimestamp, formatMeetingDate, formatDuration,
-    mergeSpeakers, getMeetingsBySpeaker,
-    type Meeting, type TranscriptionSegment
+    mergeSpeakers, getMeetingsBySpeaker, analyseBuyerIntent,
+    type Meeting, type TranscriptionSegment, type BuyerIntentData
 } from '@/services/meetingApi';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import ChatBot from '@/components/ChatBot';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, AreaChart, Area, Legend } from 'recharts';
 
-type TabType = 'transcription' | 'summary' | 'analytics' | 'audio';
+type TabType = 'transcription' | 'summary' | 'analytics' | 'audio' | 'memo_bot';
 
 const SPEAKER_COLORS = [
     { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', accent: '#1B2BB8' },
@@ -88,21 +100,27 @@ const MeetingDetail: React.FC = () => {
     const [showPromoDialog, setShowPromoDialog] = useState(false);
     const [promoCode, setPromoCode] = useState('');
     const [showTransition, setShowTransition] = useState(false);
+    const [isActivating, setIsActivating] = useState(false);
 
     const handleUnlock = async () => {
+        if (isActivating || !promoCode.trim()) return;
+        setIsActivating(true);
         try {
             const { activatePro } = await import('@/services/api');
-            const result = await activatePro(promoCode);
-            if (!result.error) {
+            const result = await activatePro(promoCode.trim());
+            if (result?.success) {
                 setShowPromoDialog(false);
+                setPromoCode('');
                 setShowTransition(true);
                 setTimeout(() => setShowTransition(false), 3000);
                 toast.success("Premium features unlocked!");
             } else {
-                toast.error(result.detail || result.error || "Invalid promo code.");
+                toast.error(result?.error || "Invalid promo code.");
             }
         } catch (e: any) {
             toast.error(e.message || "Failed to unlock pro features.");
+        } finally {
+            setIsActivating(false);
         }
     };
 
@@ -118,7 +136,7 @@ const MeetingDetail: React.FC = () => {
             setIsLoading(true);
             const result = await getMeeting(id);
             if ('error' in result) {
-                toast.error('Failed to load meeting');
+                toast.error(typeof result.error === 'string' ? result.error : 'Failed to load meeting');
                 navigate('/meetings');
                 return;
             }
@@ -153,13 +171,19 @@ const MeetingDetail: React.FC = () => {
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
+        const setSafeDuration = () => {
+            const d = Number(audio.duration);
+            setDuration(Number.isFinite(d) && d > 0 ? d : 0);
+        };
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-        const onDurationChange = () => setDuration(audio.duration);
+        const onLoadedMetadata = () => setSafeDuration();
+        const onDurationChange = () => setSafeDuration();
         const onEnded = () => setIsPlaying(false);
         const onPlay = () => setIsPlaying(true);
         const onPause = () => setIsPlaying(false);
 
         audio.addEventListener('timeupdate', onTimeUpdate);
+        audio.addEventListener('loadedmetadata', onLoadedMetadata);
         audio.addEventListener('durationchange', onDurationChange);
         audio.addEventListener('ended', onEnded);
         audio.addEventListener('play', onPlay);
@@ -167,12 +191,19 @@ const MeetingDetail: React.FC = () => {
 
         return () => {
             audio.removeEventListener('timeupdate', onTimeUpdate);
+            audio.removeEventListener('loadedmetadata', onLoadedMetadata);
             audio.removeEventListener('durationchange', onDurationChange);
             audio.removeEventListener('ended', onEnded);
             audio.removeEventListener('play', onPlay);
             audio.removeEventListener('pause', onPause);
         };
     }, [audioUrl]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.volume = volume;
+    }, [volume, audioUrl]);
 
     const togglePlay = () => {
         if (!audioRef.current) return;
@@ -199,13 +230,14 @@ const MeetingDetail: React.FC = () => {
     };
 
     useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', () => setIsDragging(false));
-        }
+        if (!isDragging) return;
+        const onMouseMove = (e: MouseEvent) => handleMouseMove(e);
+        const onMouseUp = () => setIsDragging(false);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
         return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', () => setIsDragging(false));
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
         };
     }, [isDragging, duration]);
 
@@ -299,11 +331,13 @@ const MeetingDetail: React.FC = () => {
         setIsDeleting(true);
         const result = await deleteMeeting(id);
         if ('error' in result) {
-            toast.error('Failed to delete meeting');
+            toast.error(typeof result.error === 'string' ? result.error : 'Failed to delete meeting');
             setIsDeleting(false);
             setShowDeleteConfirm(false);
         } else {
             toast.success('Meeting deleted successfully');
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
             navigate('/meetings');
         }
     };
@@ -376,8 +410,8 @@ const MeetingDetail: React.FC = () => {
                             placeholder="Enter promo code"
                             className="h-12 border-slate-200 rounded-xl"
                         />
-                        <Button onClick={handleUnlock} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-12 rounded-xl font-bold text-lg">
-                            Unlock Now
+                        <Button onClick={handleUnlock} disabled={isActivating || !promoCode.trim()} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-12 rounded-xl font-bold text-lg disabled:opacity-60">
+                            {isActivating ? 'Activating...' : 'Unlock Now'}
                         </Button>
                     </div>
                 </DialogContent>
@@ -404,7 +438,40 @@ const MeetingDetail: React.FC = () => {
                         <RefreshCw className={`h-4 w-4 ${isReprocessing ? 'animate-spin' : ''}`} />
                         <span>Re-analyze</span>
                     </Button>
-
+                    {isPro && (
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                disabled={isDeleting || isReprocessing}
+                                className="rounded-xl border-red-200 text-red-600 gap-2 h-10 hover:bg-red-50"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete</span>
+                            </Button>
+                            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                                <AlertDialogContent className="rounded-2xl border-slate-200">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete this meeting?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This permanently removes the meeting and its audio from your library. This cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                        <Button
+                                            variant="destructive"
+                                            className="rounded-xl"
+                                            disabled={isDeleting}
+                                            onClick={() => void handleDelete()}
+                                        >
+                                            {isDeleting ? 'Deleting…' : 'Delete meeting'}
+                                        </Button>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -505,6 +572,7 @@ const MeetingDetail: React.FC = () => {
                                 id="audio-slider"
                                 className="h-2 bg-slate-100/80 rounded-full cursor-pointer relative group"
                                 onMouseDown={(e) => {
+                                    if (!duration) return;
                                     setIsDragging(true);
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -544,17 +612,18 @@ const MeetingDetail: React.FC = () => {
                             </div>
                         </div>
 
-                        <audio ref={audioRef} src={audioUrl} />
+                        <audio ref={audioRef} src={audioUrl} preload="metadata" />
                     </div>
                 </div>
             )}
 
             {/* Tabs Nav - Moved above grid for perfect alignment */}
-            <div className="mb-8 flex items-center gap-1.5 p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-2xl w-fit border border-slate-200/50">
+            <div className="mb-8 flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-2xl w-fit max-w-full border border-slate-200/50">
                 {[
                     { id: 'summary', label: 'Summary', icon: <MessageSquare className="h-4 w-4" /> },
                     { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
-                    { id: 'transcription', label: 'Transcripts', icon: <FileText className="h-4 w-4" /> }
+                    { id: 'transcription', label: 'Transcripts', icon: <FileText className="h-4 w-4" /> },
+                    { id: 'memo_bot', label: 'Ask Memo Bot', icon: <Bot className="h-4 w-4" /> },
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -595,6 +664,15 @@ const MeetingDetail: React.FC = () => {
                                 setNewSpeakerName={setNewSpeakerName}
                                 onRenameSpeaker={handleRenameSpeaker}
                                 isRenaming={isRenaming}
+                            />
+                        )}
+                        {activeTab === 'memo_bot' && (
+                            <ChatBot
+                                key={`memo-bot-${meeting.id}`}
+                                meetings={[meeting]}
+                                variant="embedded"
+                                contextMeetingId={String(meeting.id)}
+                                contextMeetingTitle={meeting.title || 'Untitled meeting'}
                             />
                         )}
                     </div>
@@ -794,82 +872,152 @@ const SummaryView = ({ meeting }: { meeting: Meeting }) => (
     </div>
 );
 
+// ─── Widget registry ───
+type WidgetId = 'technical' | 'sentiment' | 'radar' | 'speaker_voice' | 'pending_meetings' | 'essential_metrics' | 'pro_metrics' | 'compliance' | 'buyer_intent';
+
+interface WidgetDef {
+    id: WidgetId;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+    category: 'core' | 'charts' | 'participants' | 'compliance' | 'sales';
+}
+
+const WIDGET_CATALOG: WidgetDef[] = [
+    { id: 'buyer_intent', label: 'Buyer Intent & Emotion', description: 'Purchase readiness, emotional arc & deal health', icon: <HeartPulse className="h-4 w-4" />, category: 'sales' },
+    { id: 'technical', label: 'Technical Overview', description: 'Tech-product analysis & engineering insights', icon: <Lightbulb className="h-4 w-4" />, category: 'core' },
+    // Legacy ID: older saved layouts may contain `sentiment`. We still render it using the technical overview.
+    { id: 'sentiment', label: 'Technical Overview', description: 'Legacy ID for technical overview', icon: <Lightbulb className="h-4 w-4" />, category: 'core' },
+    { id: 'radar', label: 'Intelligence Radar', description: 'Spider chart of meeting effectiveness', icon: <Activity className="h-4 w-4" />, category: 'charts' },
+    { id: 'speaker_voice', label: 'Speaker Voice Analysis', description: 'Speaking time, words & timeline', icon: <Mic className="h-4 w-4" />, category: 'charts' },
+    { id: 'pending_meetings', label: 'Pending by Participant', description: 'Meetings in queue per person', icon: <Clock className="h-4 w-4" />, category: 'participants' },
+    { id: 'essential_metrics', label: 'Essential Metrics', description: 'Engagement, participation & clarity', icon: <BarChart3 className="h-4 w-4" />, category: 'core' },
+    { id: 'pro_metrics', label: 'Pro Metrics', description: 'Participation & effectiveness details', icon: <Target className="h-4 w-4" />, category: 'core' },
+    { id: 'compliance', label: 'Security & Compliance', description: 'Compliance, security & tracking', icon: <Shield className="h-4 w-4" />, category: 'compliance' },
+];
+
+const LAYOUT_STORAGE_KEY = 'memo_analytics_layout';
+
 const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
     const analytics = meeting.analytics_data;
     const [pendingMeetings, setPendingMeetings] = useState<Record<string, { meetings: any[]; totalMeetings: number; loading: boolean }>>({});
+    const [activeWidgets, setActiveWidgets] = useState<WidgetId[]>(() => {
+        try {
+            const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
+            if (stored) return JSON.parse(stored) as WidgetId[];
+        } catch { /* ignore */ }
+        return [];
+    });
+    const [trayOpen, setTrayOpen] = useState(true);
+    const [draggedWidget, setDraggedWidget] = useState<WidgetId | null>(null);
+    const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+    const [dragOverTray, setDragOverTray] = useState(false);
 
-    // Compute speaker voice data from transcription
+    const [buyerIntent, setBuyerIntent] = useState<BuyerIntentData | null>(null);
+    const [buyerIntentLoading, setBuyerIntentLoading] = useState(false);
+    const [buyerIntentError, setBuyerIntentError] = useState<string | null>(null);
+
+    useEffect(() => {
+        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(activeWidgets));
+    }, [activeWidgets]);
+
+    const addWidget = (id: WidgetId, atIndex?: number) => {
+        setActiveWidgets(prev => {
+            if (prev.includes(id)) return prev;
+            if (atIndex !== undefined && atIndex !== null) {
+                const next = [...prev];
+                next.splice(atIndex, 0, id);
+                return next;
+            }
+            return [...prev, id];
+        });
+    };
+
+    const removeWidget = (id: WidgetId) => setActiveWidgets(prev => prev.filter(w => w !== id));
+
+    const moveWidget = (fromIdx: number, toIdx: number) => {
+        setActiveWidgets(prev => {
+            const next = [...prev];
+            const [item] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, item);
+            return next;
+        });
+    };
+
+    const availableWidgets = WIDGET_CATALOG
+        .filter(w => !activeWidgets.includes(w.id))
+        // Hide legacy ID from the widget tray.
+        .filter(w => w.id !== 'sentiment');
+
+    const fetchBuyerIntent = useCallback(async () => {
+        if (buyerIntentLoading || buyerIntent) return;
+        setBuyerIntentLoading(true);
+        setBuyerIntentError(null);
+        try {
+            const res = await analyseBuyerIntent(String(meeting.id));
+            if ('error' in res) { setBuyerIntentError(res.error); return; }
+            setBuyerIntent(res.data);
+        } catch { setBuyerIntentError('Failed to analyse buyer intent'); }
+        finally { setBuyerIntentLoading(false); }
+    }, [meeting.id, buyerIntentLoading, buyerIntent]);
+
+    useEffect(() => {
+        if (activeWidgets.includes('buyer_intent') && !buyerIntent && !buyerIntentLoading) fetchBuyerIntent();
+    }, [activeWidgets, buyerIntent, buyerIntentLoading, fetchBuyerIntent]);
+
+    // ─── Shared data computations ───
     const speakerVoiceData = React.useMemo(() => {
         if (!meeting.transcription || !Array.isArray(meeting.transcription)) return [];
-
         const speakerMap: Record<string, { totalTime: number; wordCount: number; segmentCount: number; segments: Array<{ start: number; end: number }> }> = {};
-
         meeting.transcription.forEach((seg: TranscriptionSegment) => {
-            if (!speakerMap[seg.speaker]) {
-                speakerMap[seg.speaker] = { totalTime: 0, wordCount: 0, segmentCount: 0, segments: [] };
-            }
-            const duration = Math.max(0, seg.end - seg.start);
-            speakerMap[seg.speaker].totalTime += duration;
+            if (!speakerMap[seg.speaker]) speakerMap[seg.speaker] = { totalTime: 0, wordCount: 0, segmentCount: 0, segments: [] };
+            const dur = Math.max(0, seg.end - seg.start);
+            speakerMap[seg.speaker].totalTime += dur;
             speakerMap[seg.speaker].wordCount += seg.text.split(/\s+/).filter(Boolean).length;
             speakerMap[seg.speaker].segmentCount += 1;
             speakerMap[seg.speaker].segments.push({ start: seg.start, end: seg.end });
         });
-
         return Object.entries(speakerMap).map(([speaker, data], idx) => ({
-            speaker,
-            speakingTime: Math.round(data.totalTime),
-            wordCount: data.wordCount,
-            segments: data.segmentCount,
-            color: SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent,
-            rawSegments: data.segments,
+            speaker, speakingTime: Math.round(data.totalTime), wordCount: data.wordCount,
+            segments: data.segmentCount, color: SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent, rawSegments: data.segments,
         }));
     }, [meeting.transcription]);
 
-    // Compute voice timeline data (10-second buckets)
     const voiceTimeline = React.useMemo(() => {
         if (!meeting.transcription || !Array.isArray(meeting.transcription) || meeting.transcription.length === 0) return [];
-
         const maxTime = Math.max(...meeting.transcription.map((s: TranscriptionSegment) => s.end));
-        const bucketSize = Math.max(10, Math.ceil(maxTime / 30)); // ~30 buckets max
+        const bucketSize = Math.max(10, Math.ceil(maxTime / 30));
         const bucketCount = Math.ceil(maxTime / bucketSize);
-        const speakers: string[] = Array.from(new Set(meeting.transcription.map((s: TranscriptionSegment) => s.speaker)));
-
+        const spk: string[] = Array.from(new Set(meeting.transcription.map((s: TranscriptionSegment) => s.speaker)));
         const timeline: any[] = [];
         for (let i = 0; i < bucketCount; i++) {
-            const bucketStart = i * bucketSize;
-            const bucketEnd = bucketStart + bucketSize;
-            const entry: any = { time: formatTimestamp(bucketStart) };
-
-            speakers.forEach(speaker => {
-                let speakTime = 0;
+            const bStart = i * bucketSize;
+            const bEnd = bStart + bucketSize;
+            const entry: any = { time: formatTimestamp(bStart) };
+            spk.forEach(speaker => {
+                let t = 0;
                 meeting.transcription!.forEach((seg: TranscriptionSegment) => {
                     if (seg.speaker !== speaker) return;
-                    const overlapStart = Math.max(seg.start, bucketStart);
-                    const overlapEnd = Math.min(seg.end, bucketEnd);
-                    if (overlapEnd > overlapStart) {
-                        speakTime += overlapEnd - overlapStart;
-                    }
+                    const os = Math.max(seg.start, bStart);
+                    const oe = Math.min(seg.end, bEnd);
+                    if (oe > os) t += oe - os;
                 });
-                entry[speaker] = Math.round(speakTime);
+                entry[speaker] = Math.round(t);
             });
             timeline.push(entry);
         }
         return timeline;
     }, [meeting.transcription]);
 
-    // Fetch pending meetings for each participant
     useEffect(() => {
         if (!meeting.participants || meeting.participants.length === 0) return;
-
         meeting.participants.forEach(async (participant: string) => {
-            if (pendingMeetings[participant]) return; // already fetched
+            if (pendingMeetings[participant]) return;
             setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], totalMeetings: 0, loading: true } }));
             try {
                 const result = await getMeetingsBySpeaker(participant);
                 if (!('error' in result)) {
-                    const pending = result.items.filter(
-                        (m: any) => (m.status === 'PENDING' || m.status === 'PROCESSING' || m.status === 'RECORDING') && m.id !== meeting.id
-                    );
+                    const pending = result.items.filter((m: any) => (m.status === 'PENDING' || m.status === 'PROCESSING' || m.status === 'RECORDING') && m.id !== meeting.id);
                     setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: pending, totalMeetings: result.total || 0, loading: false } }));
                 } else {
                     setPendingMeetings(prev => ({ ...prev, [participant]: { meetings: [], totalMeetings: 0, loading: false } }));
@@ -881,6 +1029,7 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
     }, [meeting.participants, meeting.id]);
 
     const speakers: string[] = meeting.transcription ? Array.from(new Set(meeting.transcription.map((s: TranscriptionSegment) => s.speaker))) : [];
+
     if (!analytics) return (
         <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-4" />
@@ -889,8 +1038,6 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
     );
 
     const clamp = (n: number, min = 0, max = 100) => Math.min(max, Math.max(min, n));
-
-    // Accepts either 0-10 or 0-1 or 0-100-ish values and normalizes to 0-100.
     const toPct = (value: any): number | null => {
         if (typeof value !== 'number' || Number.isNaN(value)) return null;
         if (value <= 1) return clamp(value * 100);
@@ -914,199 +1061,231 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
         );
     };
 
-    const coreMetrics: Array<{ label: string; value: any; color: string }> = [
-        { label: 'Engagement', value: analytics.engagement_level, color: 'bg-[#1B2BB8]' },
-        { label: 'Participation Balance', value: analytics.participation_balance, color: 'bg-emerald-500' },
-        { label: 'Audio Clarity', value: analytics.audio_clarity, color: 'bg-slate-500' },
-    ];
+    // ─── Widget content renderers ───
+    const renderWidgetContent = (widgetId: WidgetId): React.ReactNode => {
+        switch (widgetId) {
+            case 'technical':
+            case 'sentiment': {
+                const detailed = typeof analytics.tech_detailed_technical_analysis === 'string' ? analytics.tech_detailed_technical_analysis : '';
+                const detailedTrim = detailed.trim();
+                const focusScore = typeof analytics.tech_focus_score === 'number' ? analytics.tech_focus_score : 0;
+                const focusIsStrong = focusScore >= 6;
 
-    const proSections: Array<{
-        title: string;
-        icon: React.ReactNode;
-        metrics: Array<{ label: string; value: any; color: string }>;
-    }> = [
-            {
-                title: 'Participation',
-                icon: <Activity className="h-5 w-5 text-emerald-500" />,
-                metrics: [
-                    { label: 'Active Participation', value: analytics.active_participation, color: 'bg-emerald-500' },
-                    { label: 'Speaking Distribution', value: analytics.speaking_distribution, color: 'bg-slate-500' },
-                ],
-            },
-            {
-                title: 'Effectiveness',
-                icon: <Target className="h-5 w-5 text-[#1B2BB8]" />,
-                metrics: [
-                    { label: 'Agenda Coverage', value: analytics.agenda_coverage, color: 'bg-[#1B2BB8]' },
-                    { label: 'Time Management', value: analytics.time_management, color: 'bg-slate-500' },
-                ],
-            },
-        ];
+                const isTechRaw = analytics.tech_is_product;
+                const isTech =
+                    isTechRaw === true ||
+                    isTechRaw === 'true' ||
+                    (typeof isTechRaw === 'number' && isTechRaw === 1) ||
+                    focusIsStrong ||
+                    detailedTrim.length > 0;
+                const focusPct = toPct(focusScore) ?? 0;
+                const productOrPlatform = typeof analytics.tech_product_or_platform === 'string' ? analytics.tech_product_or_platform : 'unknown';
+                const summary = typeof analytics.tech_product_summary === 'string' ? analytics.tech_product_summary : '';
 
-    const renderedCore = coreMetrics.map(m => renderMetric(m.label, m.value, m.color)).filter(Boolean);
-    const renderedProSections = proSections
-        .map(section => {
-            const metrics = section.metrics.map(m => renderMetric(m.label, m.value, m.color)).filter(Boolean);
-            if (metrics.length === 0) return null;
-            return { ...section, metrics };
-        })
-        .filter(Boolean) as Array<{ title: string; icon: React.ReactNode; metrics: React.ReactNode[] }>;
+                const keyTerms: string[] = Array.isArray(analytics.tech_key_technical_terms) ? analytics.tech_key_technical_terms : [];
+                const integrationPoints: string[] = Array.isArray(analytics.tech_integration_points) ? analytics.tech_integration_points : [];
+                const architectureComponents: string[] = Array.isArray(analytics.tech_architecture_components) ? analytics.tech_architecture_components : [];
 
-    if (renderedCore.length === 0 && renderedProSections.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                    <BarChart3 className="h-6 w-6 text-slate-400" />
-                </div>
-                <p className="text-slate-700 font-bold">Analytics not available yet</p>
-                <p className="text-slate-500 font-medium mt-1 max-w-sm">
-                    This meeting doesn’t have enough processed data to generate reliable analytics.
-                </p>
-            </div>
-        );
-    }
+                // `detailed` and `detailedTrim` computed above.
 
-    return (
-        <div className="relative">
-            {/* Lock Overlay */}
-            {!isPro && (
-                <div className="absolute inset-0 z-20 bg-slate-50/60 backdrop-blur-sm rounded-[2.5rem] flex flex-col items-center justify-center border border-slate-200/50 shadow-inner">
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-slate-200/60 max-w-sm text-center flex flex-col items-center transform -translate-y-8">
-                        <div className="h-16 w-16 rounded-full bg-blue-50 border-4 border-white shadow-sm flex items-center justify-center mb-6">
-                            <Lock className="h-8 w-8 text-[#1B2BB8]" />
+                return (
+                    <div className="bg-white rounded-[2rem] p-8 text-slate-900 relative overflow-hidden border border-slate-200 shadow-sm">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-400">
+                            <Lightbulb className="h-32 w-32" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">Premium Analytics Locked</h3>
-                        <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-[260px] mb-6">
-                            Advanced AI analytics are not available during the trial period. Upgrade to unlock these insights.
-                        </p>
-                        <Button
-                            className="w-full bg-[#1B2BB8] hover:bg-blue-800 text-white font-bold rounded-xl shadow-md transition-all active:scale-95"
-                            onClick={onUpgradeClick}
-                        >
-                            Upgrade Now
-                        </Button>
-                    </div>
-                </div>
-            )}
 
-            <div className={`space-y-12 ${!isPro ? 'opacity-40 pointer-events-none select-none filter grayscale-[30%]' : ''}`}>
-                {/* Header */}
-                <div className="bg-white rounded-[2.5rem] p-8 text-slate-900 relative overflow-hidden border border-slate-200 shadow-sm">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 text-slate-400">
-                        <Brain className="h-32 w-32" />
-                    </div>
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                        <div className="flex items-center gap-6">
-                            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl ${analytics.sentiment === 'positive' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                analytics.sentiment === 'negative' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                                    'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                }`}>
-                                {analytics.sentiment === 'positive' ? <ThumbsUp className="h-10 w-10" /> :
-                                    analytics.sentiment === 'negative' ? <ThumbsDown className="h-10 w-10" /> :
-                                        <Activity className="h-10 w-10" />}
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-1">Overall Sentiment</p>
-                                <h3 className="text-3xl font-bold uppercase tracking-tight">{analytics.sentiment || 'NEUTRAL'}</h3>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-xs font-bold text-slate-400">SCORE: {analytics.sentiment_score || 0}/10</span>
-                                    <div className="h-1 w-24 bg-white/10 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500" style={{ width: `${(analytics.sentiment_score || 0) * 10}%` }} />
+                        <div className="relative z-10 flex flex-col gap-8">
+                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+                                <div className="flex items-center gap-6">
+                                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl ${isTech ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-600 border border-slate-200/70'}`}>
+                                        {isTech ? <Flame className="h-10 w-10" /> : <Activity className="h-10 w-10" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-1">
+                                            {isTech ? 'Tech Product Detected' : 'Technical Overview'}
+                                        </p>
+                                        <h3 className="text-3xl font-bold uppercase tracking-tight">
+                                            {isTech ? 'TECH' : 'GENERAL'}
+                                        </h3>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-xs font-bold text-slate-400">FOCUS: {focusScore || 0}/10</span>
+                                            <div className="h-1 w-24 bg-slate-200 rounded-full overflow-hidden">
+                                                <div className="h-full bg-[#1B2BB8]" style={{ width: `${focusPct}%` }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 min-w-[140px]">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Product/Platform</p>
+                                        <p className="text-sm font-extrabold text-slate-900 line-clamp-2">{productOrPlatform || 'unknown'}</p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 min-w-[140px]">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Technical Summary</p>
+                                        <p className="text-sm font-medium text-slate-700 line-clamp-3">{summary || 'No technical summary found for this meeting.'}</p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 min-w-[140px]">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Engagement</p>
-                                <p className="text-xl font-bold">{toPct(analytics.engagement_level) ?? 0}%</p>
-                            </div>
-                            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 min-w-[140px]">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">ROI</p>
-                                <p className="text-xl font-bold">{toPct(analytics.meeting_roi) ?? 0}%</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Graph Analytics Block */}
-                <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="p-2 bg-blue-50 rounded-xl border border-blue-100">
-                            <Activity className="h-4 w-4 text-[#1B2BB8]" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 tracking-tight">Intelligence Radar</h3>
-                            <p className="text-xs font-medium text-slate-500">Holistic view of meeting effectiveness</p>
-                        </div>
-                    </div>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                                { subject: 'Engagement', A: toPct(analytics.engagement_level) || 0, fullMark: 100 },
-                                { subject: 'Participation', A: toPct(analytics.participation_balance) || 0, fullMark: 100 },
-                                { subject: 'Audio Clarity', A: toPct(analytics.audio_clarity) || 0, fullMark: 100 },
-                                { subject: 'Active', A: toPct(analytics.active_participation) || 0, fullMark: 100 },
-                                { subject: 'Time Mgmt', A: toPct(analytics.time_management) || 0, fullMark: 100 },
-                                { subject: 'Agenda Tracking', A: toPct(analytics.agenda_coverage) || 0, fullMark: 100 },
-                            ]}>
-                                <PolarGrid stroke="#f1f5f9" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                <Radar
-                                    name="Meeting Intelligence"
-                                    dataKey="A"
-                                    stroke="#1B2BB8"
-                                    strokeWidth={2}
-                                    fill="#1B2BB8"
-                                    fillOpacity={0.2}
-                                />
-                                <RechartsTooltip
-                                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', fontWeight: 'bold', fontSize: '12px' }}
-                                    itemStyle={{ color: '#1B2BB8' }}
-                                />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                            {isTech && detailedTrim && (
+                                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                    <h4 className="text-sm font-bold text-slate-800 mb-3">Detailed Technical Analysis</h4>
+                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{detailedTrim}</p>
+                                </div>
+                            )}
 
-                {/* Speaker Voice Activity Graph */}
-                {speakerVoiceData.length > 0 && (
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {keyTerms.length > 0 && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Key Technical Terms</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {keyTerms.slice(0, 12).map((t, i) => (
+                                                <span key={`${t}-${i}`} className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 uppercase">
+                                                    {t}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(architectureComponents.length > 0 || integrationPoints.length > 0) && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Architecture & Integration</h4>
+                                        {architectureComponents.length > 0 && (
+                                            <>
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Architecture components</p>
+                                                <div className="space-y-2 mb-4">
+                                                    {architectureComponents.slice(0, 8).map((x, i) => (
+                                                        <div key={`${x}-${i}`} className="flex items-start gap-2 text-sm text-slate-700">
+                                                            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#1B2BB8]" />
+                                                            <span className="leading-relaxed">{x}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                        {integrationPoints.length > 0 && (
+                                            <>
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Integration points</p>
+                                                <div className="space-y-2">
+                                                    {integrationPoints.slice(0, 8).map((x, i) => (
+                                                        <div key={`${x}-${i}`} className="flex items-start gap-2 text-sm text-slate-700">
+                                                            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                            <span className="leading-relaxed">{x}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {Array.isArray(analytics.tech_constraints_assumptions) && analytics.tech_constraints_assumptions.length > 0 && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Constraints & Assumptions</h4>
+                                        <ul className="space-y-2 list-disc list-inside text-sm text-slate-700">
+                                            {analytics.tech_constraints_assumptions.slice(0, 10).map((x: string, i: number) => (
+                                                <li key={`${x}-${i}`}>{x}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {Array.isArray(analytics.tech_risks_and_gaps) && analytics.tech_risks_and_gaps.length > 0 && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Risks & Gaps</h4>
+                                        <ul className="space-y-2 list-disc list-inside text-sm text-slate-700">
+                                            {analytics.tech_risks_and_gaps.slice(0, 10).map((x: string, i: number) => (
+                                                <li key={`${x}-${i}`}>{x}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {Array.isArray(analytics.tech_questions_for_engineering) && analytics.tech_questions_for_engineering.length > 0 && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Questions for Engineering</h4>
+                                        <ul className="space-y-2 list-disc list-inside text-sm text-slate-700">
+                                            {analytics.tech_questions_for_engineering.slice(0, 10).map((x: string, i: number) => (
+                                                <li key={`${x}-${i}`}>{x}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {Array.isArray(analytics.tech_recommended_next_steps) && analytics.tech_recommended_next_steps.length > 0 && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Recommended Next Steps</h4>
+                                        <ul className="space-y-2 list-decimal list-inside text-sm text-slate-700">
+                                            {analytics.tech_recommended_next_steps.slice(0, 10).map((x: string, i: number) => (
+                                                <li key={`${x}-${i}`}>{x}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {!isTech && detailedTrim.length === 0 && keyTerms.length === 0 && architectureComponents.length === 0 && integrationPoints.length === 0 && (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5 col-span-full">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-3">Technical Overview</h4>
+                                        <p className="text-sm text-slate-500 font-medium">
+                                            This meeting doesn’t look like a deep technical product discussion. We kept the technical details at a high level.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            case 'radar':
+                return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-3 mb-8">
-                            <div className="p-2 bg-purple-50 rounded-xl border border-purple-100">
-                                <Mic className="h-4 w-4 text-purple-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Speaker Voice Analysis</h3>
-                                <p className="text-xs font-medium text-slate-500">Speaking time and word count per participant</p>
-                            </div>
+                            <div className="p-2 bg-blue-50 rounded-xl border border-blue-100"><Activity className="h-4 w-4 text-[#1B2BB8]" /></div>
+                            <div><h3 className="text-lg font-bold text-slate-800 tracking-tight">Intelligence Radar</h3><p className="text-xs font-medium text-slate-500">Holistic view of meeting effectiveness</p></div>
                         </div>
-
-                        {/* Bar chart: Speaking Time per Speaker */}
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                                    { subject: 'Engagement', A: toPct(analytics.engagement_level) || 0, fullMark: 100 },
+                                    { subject: 'Participation', A: toPct(analytics.participation_balance) || 0, fullMark: 100 },
+                                    { subject: 'Audio Clarity', A: toPct(analytics.audio_clarity) || 0, fullMark: 100 },
+                                    { subject: 'Active', A: toPct(analytics.active_participation) || 0, fullMark: 100 },
+                                    { subject: 'Time Mgmt', A: toPct(analytics.time_management) || 0, fullMark: 100 },
+                                    { subject: 'Agenda Tracking', A: toPct(analytics.agenda_coverage) || 0, fullMark: 100 },
+                                ]}>
+                                    <PolarGrid stroke="#f1f5f9" />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                    <Radar name="Meeting Intelligence" dataKey="A" stroke="#1B2BB8" strokeWidth={2} fill="#1B2BB8" fillOpacity={0.2} />
+                                    <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }} itemStyle={{ color: '#1B2BB8' }} />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                );
+            case 'speaker_voice':
+                if (speakerVoiceData.length === 0) return <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm text-center text-slate-400 text-sm font-medium">No speaker data available for this meeting.</div>;
+                return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-2 bg-purple-50 rounded-xl border border-purple-100"><Mic className="h-4 w-4 text-purple-600" /></div>
+                            <div><h3 className="text-lg font-bold text-slate-800 tracking-tight">Speaker Voice Analysis</h3><p className="text-xs font-medium text-slate-500">Speaking time and word count per participant</p></div>
+                        </div>
                         <div className="h-[280px] w-full mb-8">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={speakerVoiceData} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                                     <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} tickFormatter={(v) => `${v}s`} />
                                     <YAxis dataKey="speaker" type="category" width={100} tick={{ fill: '#334155', fontSize: 12, fontWeight: 700 }} />
-                                    <RechartsTooltip
-                                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }}
-                                        formatter={(value: any, name: string) => [
-                                            name === 'speakingTime' ? `${value}s` : value,
-                                            name === 'speakingTime' ? 'Speaking Time' : 'Words'
-                                        ]}
-                                    />
+                                    <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }} formatter={(value: any, name: string) => [name === 'speakingTime' ? `${value}s` : value, name === 'speakingTime' ? 'Speaking Time' : 'Words']} />
                                     <Bar dataKey="speakingTime" name="Speaking Time" radius={[0, 8, 8, 0]} barSize={24}>
-                                        {speakerVoiceData.map((entry, idx) => (
-                                            <Cell key={idx} fill={entry.color} />
-                                        ))}
+                                        {speakerVoiceData.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
-
-                        {/* Speaker stats cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                             {speakerVoiceData.map((s, idx) => {
                                 const totalTime = speakerVoiceData.reduce((sum, d) => sum + d.speakingTime, 0);
@@ -1114,65 +1293,35 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
                                 return (
                                     <div key={idx} className="bg-slate-50/80 rounded-2xl p-5 border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all group">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg" style={{ backgroundColor: s.color }}>
-                                                {s.speaker.charAt(0).toUpperCase()}
-                                            </div>
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg" style={{ backgroundColor: s.color }}>{s.speaker.charAt(0).toUpperCase()}</div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-slate-800 truncate">{s.speaker}</p>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{pct}% of conversation</p>
                                             </div>
                                         </div>
-                                        <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden mb-3">
-                                            <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%`, backgroundColor: s.color }} />
-                                        </div>
+                                        <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden mb-3"><div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%`, backgroundColor: s.color }} /></div>
                                         <div className="grid grid-cols-3 gap-2 text-center">
-                                            <div>
-                                                <p className="text-lg font-black text-slate-900">{s.speakingTime}s</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Time</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-lg font-black text-slate-900">{s.wordCount}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Words</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-lg font-black text-slate-900">{s.segments}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Turns</p>
-                                            </div>
+                                            <div><p className="text-lg font-black text-slate-900">{s.speakingTime}s</p><p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Time</p></div>
+                                            <div><p className="text-lg font-black text-slate-900">{s.wordCount}</p><p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Words</p></div>
+                                            <div><p className="text-lg font-black text-slate-900">{s.segments}</p><p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Turns</p></div>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
-
-                        {/* Voice Activity Timeline */}
                         {voiceTimeline.length > 0 && speakers.length > 0 && (
                             <div>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Waves className="h-4 w-4 text-slate-500" />
-                                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Voice Activity Timeline</h4>
-                                </div>
+                                <div className="flex items-center gap-2 mb-4"><Waves className="h-4 w-4 text-slate-500" /><h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Voice Activity Timeline</h4></div>
                                 <div className="h-[220px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={voiceTimeline} margin={{ left: 0, right: 10, top: 10, bottom: 10 }}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                                             <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} interval="preserveStartEnd" />
                                             <YAxis tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={(v) => `${v}s`} />
-                                            <RechartsTooltip
-                                                contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }}
-                                                formatter={(value: any) => [`${value}s`, undefined]}
-                                            />
+                                            <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }} formatter={(value: any) => [`${value}s`, undefined]} />
                                             <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
                                             {speakers.map((speaker, idx) => (
-                                                <Area
-                                                    key={speaker}
-                                                    type="monotone"
-                                                    dataKey={speaker}
-                                                    stackId="1"
-                                                    stroke={SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent}
-                                                    fill={SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent}
-                                                    fillOpacity={0.3}
-                                                    strokeWidth={2}
-                                                />
+                                                <Area key={speaker} type="monotone" dataKey={speaker} stackId="1" stroke={SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent} fill={SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent} fillOpacity={0.3} strokeWidth={2} />
                                             ))}
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -1180,78 +1329,50 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
                             </div>
                         )}
                     </div>
-                )}
-
-                {/* Meetings Pending per Participant */}
-                {meeting.participants && meeting.participants.length > 0 && (
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm">
+                );
+            case 'pending_meetings':
+                if (!meeting.participants || meeting.participants.length === 0) return <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm text-center text-slate-400 text-sm font-medium">No participant data available.</div>;
+                return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-3 mb-8">
-                            <div className="p-2 bg-amber-50 rounded-xl border border-amber-100">
-                                <Clock className="h-4 w-4 text-amber-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Pending Meetings by Participant</h3>
-                                <p className="text-xs font-medium text-slate-500">Meetings still pending or processing for each person</p>
-                            </div>
+                            <div className="p-2 bg-amber-50 rounded-xl border border-amber-100"><Clock className="h-4 w-4 text-amber-600" /></div>
+                            <div><h3 className="text-lg font-bold text-slate-800 tracking-tight">Pending Meetings by Participant</h3><p className="text-xs font-medium text-slate-500">Meetings still pending or processing</p></div>
                         </div>
-
                         <div className="space-y-4">
                             {meeting.participants.map((participant: string, pIdx: number) => {
                                 const data = pendingMeetings[participant];
                                 const isLoading = data?.loading ?? true;
-                                const meetings = data?.meetings ?? [];
+                                const mtgs = data?.meetings ?? [];
                                 const totalJoined = data?.totalMeetings ?? 0;
-
                                 return (
                                     <div key={pIdx} className="rounded-2xl border border-slate-100 overflow-hidden">
                                         <div className="flex items-center gap-3 p-4 bg-slate-50/50">
-                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md" style={{ backgroundColor: SPEAKER_COLORS[pIdx % SPEAKER_COLORS.length].accent }}>
-                                                {participant.charAt(0).toUpperCase()}
-                                            </div>
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md" style={{ backgroundColor: SPEAKER_COLORS[pIdx % SPEAKER_COLORS.length].accent }}>{participant.charAt(0).toUpperCase()}</div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-slate-800 truncate">{participant}</p>
-                                                {!isLoading && (
-                                                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                                                        Taken <span className="font-bold text-slate-700">{totalJoined} meeting{totalJoined !== 1 ? 's' : ''}</span> total
-                                                    </p>
-                                                )}
+                                                {!isLoading && <p className="text-[10px] text-slate-500 font-medium mt-0.5">Taken <span className="font-bold text-slate-700">{totalJoined} meeting{totalJoined !== 1 ? 's' : ''}</span> total</p>}
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {isLoading ? (
-                                                    <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
-                                                ) : meetings.length > 0 ? (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
-                                                        <Clock className="h-3 w-3" />
-                                                        {meetings.length} Pending
-                                                    </span>
+                                                {isLoading ? <Loader2 className="h-4 w-4 text-slate-400 animate-spin" /> : mtgs.length > 0 ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700 uppercase tracking-wider"><Clock className="h-3 w-3" />{mtgs.length} Pending</span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                                                        <CheckCircle2 className="h-3 w-3" />
-                                                        All Clear
-                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700 uppercase tracking-wider"><CheckCircle2 className="h-3 w-3" />All Clear</span>
                                                 )}
                                             </div>
                                         </div>
-
-                                        {!isLoading && meetings.length > 0 && (
+                                        {!isLoading && mtgs.length > 0 && (
                                             <div className="p-3 space-y-2">
-                                                {meetings.slice(0, 5).map((m: any, mIdx: number) => (
+                                                {mtgs.slice(0, 5).map((m: any, mIdx: number) => (
                                                     <div key={mIdx} className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/50 border border-amber-100/60 hover:bg-amber-50 transition-all cursor-pointer group/item" onClick={() => window.location.href = `/meetings/${m.id}`}>
                                                         <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-xs font-bold text-slate-800 truncate group-hover/item:text-[#1B2BB8] transition-colors">{m.title || 'Untitled Meeting'}</p>
-                                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                                                {m.created_at ? formatMeetingDate(m.created_at).split('•')[0] : 'Date unknown'}
-                                                                {' • '}
-                                                                <span className={m.status === 'PROCESSING' ? 'text-blue-500' : 'text-amber-500'}>{m.status}</span>
-                                                            </p>
+                                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">{m.created_at ? formatMeetingDate(m.created_at).split('•')[0] : 'Date unknown'}{' • '}<span className={m.status === 'PROCESSING' ? 'text-blue-500' : 'text-amber-500'}>{m.status}</span></p>
                                                         </div>
                                                         <ChevronRight className="h-3.5 w-3.5 text-slate-300 group-hover/item:text-[#1B2BB8] transition-colors shrink-0" />
                                                     </div>
                                                 ))}
-                                                {meetings.length > 5 && (
-                                                    <p className="text-[10px] text-slate-400 font-bold text-center pt-1 uppercase tracking-wider">+{meetings.length - 5} more pending</p>
-                                                )}
+                                                {mtgs.length > 5 && <p className="text-[10px] text-slate-400 font-bold text-center pt-1 uppercase tracking-wider">+{mtgs.length - 5} more pending</p>}
                                             </div>
                                         )}
                                     </div>
@@ -1259,62 +1380,525 @@ const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
                             })}
                         </div>
                     </div>
-                )}
-
-                {/* Core (always visible when present) */}
-                {renderedCore.length > 0 && (
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm">
-                        <div className="flex items-center justify-between gap-6 mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-slate-50 rounded-xl border border-slate-200">
-                                    <BarChart3 className="h-4 w-4 text-slate-600" />
+                );
+            case 'essential_metrics': {
+                const coreMetrics = [
+                    { label: 'Engagement', value: analytics.engagement_level, color: 'bg-[#1B2BB8]' },
+                    { label: 'Participation Balance', value: analytics.participation_balance, color: 'bg-emerald-500' },
+                    { label: 'Audio Clarity', value: analytics.audio_clarity, color: 'bg-slate-500' },
+                ];
+                const rendered = coreMetrics.map(m => renderMetric(m.label, m.value, m.color)).filter(Boolean);
+                if (rendered.length === 0) return <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm text-center text-slate-400 text-sm font-medium">No metric data available yet.</div>;
+                return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-slate-50 rounded-xl border border-slate-200"><BarChart3 className="h-4 w-4 text-slate-600" /></div>
+                            <div><h3 className="text-lg font-bold text-slate-800 tracking-tight">Essential Analytics</h3><p className="text-xs font-medium text-slate-500">Only metrics with real values are shown</p></div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{rendered}</div>
+                    </div>
+                );
+            }
+            case 'pro_metrics': {
+                const sections = [
+                    { title: 'Participation', icon: <Activity className="h-5 w-5 text-emerald-500" />, metrics: [{ label: 'Active Participation', value: analytics.active_participation, color: 'bg-emerald-500' }, { label: 'Speaking Distribution', value: analytics.speaking_distribution, color: 'bg-slate-500' }] },
+                    { title: 'Effectiveness', icon: <Target className="h-5 w-5 text-[#1B2BB8]" />, metrics: [{ label: 'Agenda Coverage', value: analytics.agenda_coverage, color: 'bg-[#1B2BB8]' }, { label: 'Time Management', value: analytics.time_management, color: 'bg-slate-500' }] },
+                ];
+                const rendered = sections.map(s => ({ ...s, rendered: s.metrics.map(m => renderMetric(m.label, m.value, m.color)).filter(Boolean) })).filter(s => s.rendered.length > 0);
+                if (rendered.length === 0) return <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm text-center text-slate-400 text-sm font-medium">No pro metric data available.</div>;
+                return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            {rendered.map(section => (
+                                <div key={section.title} className="space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">{section.icon}<h3 className="text-lg font-bold text-slate-800 uppercase tracking-wider">{section.title}</h3></div>
+                                    <div className="space-y-5">{section.rendered}</div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+            case 'compliance':
+                return (
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-slate-50 rounded-xl border border-slate-200"><Shield className="h-4 w-4 text-slate-600" /></div>
+                            <h3 className="text-lg font-bold text-slate-800 tracking-tight">Security & Compliance</h3>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100"><Shield className={`h-3 w-3 ${analytics.recording_compliance ? 'text-emerald-500' : 'text-slate-300'}`} /><span>Compliance: {analytics.recording_compliance ? 'VERIFIED' : 'PENDING'}</span></div>
+                            <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100"><Shield className={`h-3 w-3 ${analytics.confidentiality_maintained ? 'text-emerald-500' : 'text-slate-300'}`} /><span>Secure: {analytics.confidentiality_maintained ? 'YES' : 'NO'}</span></div>
+                            <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100"><CheckCircle2 className={`h-3 w-3 ${analytics.meeting_minutes_shared ? 'text-emerald-500' : 'text-slate-300'}`} /><span>Log Shared: {analytics.meeting_minutes_shared ? 'YES' : 'NO'}</span></div>
+                            <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100"><Award className={`h-3 w-3 ${analytics.action_items_tracked ? 'text-emerald-500' : 'text-slate-300'}`} /><span>Items Tracked: {analytics.action_items_tracked ? 'YES' : 'NO'}</span></div>
+                        </div>
+                    </div>
+                );
+            case 'buyer_intent': {
+                if (buyerIntentLoading) return (
+                    <div className="bg-white rounded-[2rem] p-12 border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="h-8 w-8 text-[#1B2BB8] animate-spin" />
+                        <p className="text-sm font-bold text-slate-500">Analysing buyer intent & emotions…</p>
+                        <p className="text-[10px] text-slate-400">This may take 10-20 seconds</p>
+                    </div>
+                );
+                if (buyerIntentError) return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-red-100 shadow-sm text-center space-y-3">
+                        <AlertTriangle className="h-6 w-6 text-red-400 mx-auto" />
+                        <p className="text-sm text-red-600 font-bold">{buyerIntentError}</p>
+                        <Button size="sm" variant="outline" onClick={() => { setBuyerIntent(null); setBuyerIntentError(null); fetchBuyerIntent(); }}>Retry</Button>
+                    </div>
+                );
+                if (!buyerIntent) return (
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm text-center space-y-3">
+                        <HeartPulse className="h-7 w-7 text-[#1B2BB8] mx-auto" />
+                        <p className="text-sm font-bold text-slate-700">Run Buyer Intent Analysis</p>
+                        <p className="text-xs text-slate-400 max-w-xs mx-auto">AI analyses this meeting to detect the buyer&apos;s emotional arc, purchase readiness, and deal health.</p>
+                        <Button size="sm" className="bg-[#1B2BB8] hover:bg-blue-800 text-white text-xs font-bold" onClick={fetchBuyerIntent}>Analyse Now</Button>
+                    </div>
+                );
+
+                const bi = buyerIntent;
+                const meetTypeMap: Record<string, { label: string; color: string }> = {
+                    introductory: { label: 'Introductory', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                    follow_up: { label: 'Follow-up', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                    sales_demo: { label: 'Sales Demo', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                    tech_demo: { label: 'Tech Demo', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+                    negotiation: { label: 'Negotiation', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                    general: { label: 'General', color: 'bg-slate-50 text-slate-700 border-slate-200' },
+                };
+                const mt = meetTypeMap[bi.meeting_type] || meetTypeMap.general;
+
+                const readinessColor = bi.purchase_readiness >= 70 ? 'text-emerald-600' : bi.purchase_readiness >= 40 ? 'text-amber-600' : 'text-red-500';
+                const readinessBarColor = bi.purchase_readiness >= 70 ? 'bg-emerald-500' : bi.purchase_readiness >= 40 ? 'bg-amber-500' : 'bg-red-400';
+                const readinessLabels: Record<string, string> = { not_ready: 'Not Ready', exploring: 'Exploring', interested: 'Interested', strongly_interested: 'Strongly Interested', ready_to_buy: 'Ready to Buy' };
+
+                const dealColor = bi.deal_health.score >= 70 ? 'text-emerald-600' : bi.deal_health.score >= 40 ? 'text-amber-600' : 'text-red-500';
+                const dealBarColor = bi.deal_health.score >= 70 ? 'bg-emerald-500' : bi.deal_health.score >= 40 ? 'bg-amber-500' : 'bg-red-400';
+                const dealIcons: Record<string, React.ReactNode> = { cold: <Snowflake className="h-4 w-4 text-blue-400" />, warming: <TrendingUp className="h-4 w-4 text-amber-400" />, warm: <Flame className="h-4 w-4 text-orange-400" />, hot: <Flame className="h-4 w-4 text-red-500" />, closed: <CheckCircle2 className="h-4 w-4 text-emerald-500" /> };
+
+                const trendIcon = (t: string) => t === 'rising' ? <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" /> : t === 'declining' ? <ArrowDownRight className="h-3.5 w-3.5 text-red-400" /> : t === 'mixed' ? <Activity className="h-3.5 w-3.5 text-amber-400" /> : <ArrowRight className="h-3.5 w-3.5 text-slate-400" />;
+
+                const priorityColor: Record<string, string> = { high: 'bg-red-50 text-red-700 border-red-200', medium: 'bg-amber-50 text-amber-700 border-amber-200', low: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+                const riskColor: Record<string, string> = { high: 'text-red-600', medium: 'text-amber-600', low: 'text-emerald-600' };
+
+                return (
+                    <div className="space-y-5">
+                        {/* Header row */}
+                        <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="p-2 bg-gradient-to-br from-[#1B2BB8]/10 to-purple-100 rounded-xl border border-[#1B2BB8]/20"><HeartPulse className="h-5 w-5 text-[#1B2BB8]" /></div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-lg font-bold text-slate-800 tracking-tight">Buyer Intent & Emotional Intelligence</h3>
+                                    <p className="text-xs text-slate-400 font-medium">AI-powered analysis of purchase signals, emotions, and deal health</p>
+                                </div>
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${mt.color}`}>{mt.label}</span>
+                            </div>
+
+                            {/* Top metrics row */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Purchase Readiness</p>
+                                    <p className={`text-2xl font-black ${readinessColor}`}>{bi.purchase_readiness}%</p>
+                                    <div className="h-1.5 bg-slate-200 rounded-full mt-2 overflow-hidden"><div className={`h-full ${readinessBarColor} rounded-full transition-all`} style={{ width: `${bi.purchase_readiness}%` }} /></div>
+                                    <p className="text-[10px] text-slate-500 font-bold mt-1.5">{readinessLabels[bi.purchase_readiness_label] || bi.purchase_readiness_label}</p>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Deal Health</p>
+                                    <div className="flex items-center gap-2">
+                                        {dealIcons[bi.deal_health.label] || <Activity className="h-4 w-4 text-slate-400" />}
+                                        <p className={`text-2xl font-black ${dealColor}`}>{bi.deal_health.score}%</p>
+                                    </div>
+                                    <div className="h-1.5 bg-slate-200 rounded-full mt-2 overflow-hidden"><div className={`h-full ${dealBarColor} rounded-full transition-all`} style={{ width: `${bi.deal_health.score}%` }} /></div>
+                                    <p className="text-[10px] text-slate-500 font-bold mt-1.5 capitalize">{bi.deal_health.label}</p>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Curiosity Score</p>
+                                    <p className="text-2xl font-black text-[#1B2BB8]">{bi.question_analysis.curiosity_score}%</p>
+                                    <p className="text-[10px] text-slate-500 font-bold mt-1.5">{bi.question_analysis.total_questions} questions asked</p>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Meeting Type</p>
+                                    <p className="text-sm font-bold text-slate-800 mt-1">{mt.label}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold mt-0.5">{bi.meeting_type_confidence}% confidence</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tone summary */}
+                        <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-blue-50 rounded-xl border border-blue-100"><Eye className="h-4 w-4 text-[#1B2BB8]" /></div>
+                                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Tone Summary</h4>
+                            </div>
+                            <p className="text-sm text-slate-600 leading-relaxed font-medium">{bi.tone_summary}</p>
+                        </div>
+
+                        {/* Emotional Arc */}
+                        {bi.emotional_arc.length > 0 && (
+                            <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="p-2 bg-purple-50 rounded-xl border border-purple-100"><Activity className="h-4 w-4 text-purple-600" /></div>
+                                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Emotional Arc</h4>
+                                </div>
+                                <div className="relative">
+                                    <div className="absolute left-[18px] top-0 bottom-0 w-0.5 bg-slate-100" />
+                                    <div className="space-y-4">
+                                        {bi.emotional_arc.map((ea, idx) => {
+                                            const barPct = (ea.intensity / 10) * 100;
+                                            const heatColor = ea.intensity >= 7 ? 'bg-emerald-500' : ea.intensity >= 4 ? 'bg-amber-400' : 'bg-red-400';
+                                            return (
+                                                <div key={idx} className="flex items-start gap-4 relative pl-10">
+                                                    <div className="absolute left-[12px] top-1.5 w-3 h-3 rounded-full border-2 border-white shadow-sm z-10" style={{ backgroundColor: ea.intensity >= 7 ? '#10B981' : ea.intensity >= 4 ? '#F59E0B' : '#EF4444' }} />
+                                                    <div className="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                                        <div className="flex items-center justify-between mb-1.5">
+                                                            <span className="text-[10px] font-bold text-[#1B2BB8] uppercase tracking-wider">{ea.phase}</span>
+                                                            <span className="text-xs font-bold text-slate-600 capitalize">{ea.emotion}</span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden mb-2"><div className={`h-full ${heatColor} rounded-full transition-all`} style={{ width: `${barPct}%` }} /></div>
+                                                        <p className="text-[11px] text-slate-500 leading-relaxed">{ea.note}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Buyer Signals */}
+                        {bi.buyer_signals.length > 0 && (
+                            <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100"><TrendingUp className="h-4 w-4 text-emerald-600" /></div>
+                                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Buying Signals</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    {bi.buyer_signals.map((s, idx) => (
+                                        <div key={idx} className={`rounded-xl p-4 border ${s.type === 'positive' ? 'bg-emerald-50/60 border-emerald-100' : s.type === 'negative' ? 'bg-red-50/60 border-red-100' : 'bg-slate-50/60 border-slate-100'}`}>
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                {s.type === 'positive' ? <ThumbsUp className="h-3.5 w-3.5 text-emerald-500" /> : s.type === 'negative' ? <ThumbsDown className="h-3.5 w-3.5 text-red-400" /> : <HelpCircle className="h-3.5 w-3.5 text-slate-400" />}
+                                                <span className="text-xs font-bold text-slate-700">{s.signal}</span>
+                                                <span className={`ml-auto text-[10px] font-bold ${s.type === 'positive' ? 'text-emerald-600' : s.type === 'negative' ? 'text-red-500' : 'text-slate-400'}`}>Weight: {s.weight}/10</span>
+                                            </div>
+                                            {s.quote && <p className="text-[11px] text-slate-500 italic pl-5 border-l-2 border-slate-200 ml-1 leading-relaxed">&ldquo;{s.quote}&rdquo;</p>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Question Quality */}
+                        <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="p-2 bg-amber-50 rounded-xl border border-amber-100"><HelpCircle className="h-4 w-4 text-amber-600" /></div>
+                                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Question Quality Analysis</h4>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                                <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <p className="text-xl font-black text-slate-800">{bi.question_analysis.focused_questions}</p>
+                                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Focused</p>
+                                </div>
+                                <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <p className="text-xl font-black text-slate-800">{bi.question_analysis.irregular_questions}</p>
+                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Irregular</p>
+                                </div>
+                                <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <p className="text-xl font-black text-slate-800">{bi.question_analysis.total_questions}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</p>
+                                </div>
+                            </div>
+                            {bi.question_analysis.top_concerns.length > 0 && (
+                                <div className="mb-3">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Top Concerns</p>
+                                    <div className="flex flex-wrap gap-1.5">{bi.question_analysis.top_concerns.map((c, i) => <span key={i} className="px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-[10px] font-bold text-blue-700">{c}</span>)}</div>
+                                </div>
+                            )}
+                            {bi.question_analysis.off_topic_flags.length > 0 && (
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-800 tracking-tight">Essential Analytics</h3>
-                                    <p className="text-xs font-medium text-slate-500">Only metrics with real values are shown</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Off-topic Flags</p>
+                                    <div className="flex flex-wrap gap-1.5">{bi.question_analysis.off_topic_flags.map((f, i) => <span key={i} className="px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-[10px] font-bold text-red-600">{f}</span>)}</div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Participant Emotions */}
+                        {bi.participant_emotions.length > 0 && (
+                            <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100"><Users className="h-4 w-4 text-indigo-600" /></div>
+                                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Participant Emotions</h4>
+                                </div>
+                                <div className="space-y-4">
+                                    {bi.participant_emotions.map((pe, idx) => (
+                                        <div key={idx} className="rounded-2xl border border-slate-100 p-4 hover:shadow-md transition-all">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md" style={{ backgroundColor: SPEAKER_COLORS[idx % SPEAKER_COLORS.length].accent }}>{pe.name.charAt(0).toUpperCase()}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-bold text-slate-800 truncate">{pe.name}</p>
+                                                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[9px] font-bold text-slate-500 uppercase tracking-wider">{pe.role_guess}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-xs font-bold text-slate-600 capitalize">{pe.dominant_emotion}</span>
+                                                        <span className="text-slate-300">•</span>
+                                                        <span className="flex items-center gap-0.5 text-xs font-bold text-slate-500">{trendIcon(pe.interest_trend)} {pe.interest_trend}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-lg font-black text-slate-800">{pe.engagement_level}%</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase">Engaged</p>
+                                                </div>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3"><div className="h-full bg-[#1B2BB8] rounded-full transition-all" style={{ width: `${pe.engagement_level}%` }} /></div>
+                                            {pe.key_moments.length > 0 && (
+                                                <div className="pl-3 border-l-2 border-slate-100 space-y-1">{pe.key_moments.map((m, mi) => <p key={mi} className="text-[11px] text-slate-500 leading-relaxed">{m}</p>)}</div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Deal Health details + Follow-up */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100"><Flame className="h-4 w-4 text-emerald-600" /></div>
+                                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Deal Health</h4>
+                                </div>
+                                {bi.deal_health.accelerators.length > 0 && (
+                                    <div className="mb-4">
+                                        <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-2">Accelerators</p>
+                                        <div className="space-y-1.5">{bi.deal_health.accelerators.map((a, i) => <div key={i} className="flex items-start gap-2 text-xs text-slate-600"><ArrowUpRight className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />{a}</div>)}</div>
+                                    </div>
+                                )}
+                                {bi.deal_health.blockers.length > 0 && (
+                                    <div>
+                                        <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-2">Blockers</p>
+                                        <div className="space-y-1.5">{bi.deal_health.blockers.map((b, i) => <div key={i} className="flex items-start gap-2 text-xs text-slate-600"><AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />{b}</div>)}</div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-blue-50 rounded-xl border border-blue-100"><ArrowRight className="h-4 w-4 text-[#1B2BB8]" /></div>
+                                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Follow-up</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${priorityColor[bi.follow_up_recommendation.priority] || priorityColor.medium}`}>{bi.follow_up_recommendation.priority} priority</span>
+                                        <span className={`text-xs font-bold ${riskColor[bi.follow_up_recommendation.risk_level] || riskColor.medium}`}>Risk: {bi.follow_up_recommendation.risk_level}</span>
+                                    </div>
+                                    <p className="text-sm text-slate-700 font-medium leading-relaxed">{bi.follow_up_recommendation.suggested_action}</p>
+                                    <p className="text-[11px] text-slate-400 font-bold flex items-center gap-1"><Clock className="h-3 w-3" /> {bi.follow_up_recommendation.timing}</p>
                                 </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {renderedCore as any}
-                        </div>
                     </div>
-                )}
+                );
+            }
+            default: return null;
+        }
+    };
 
-                {/* Pro details */}
-                {renderedProSections.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                        {renderedProSections.map(section => (
-                            <div key={section.title} className="space-y-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    {section.icon}
-                                    <h3 className="text-lg font-bold text-slate-800 uppercase tracking-wider">{section.title}</h3>
+    // ─── Drag handlers ───
+    const onTrayDragStart = (e: React.DragEvent, widgetId: WidgetId) => {
+        setDraggedWidget(widgetId);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', widgetId);
+    };
+
+    const onCanvasDragStart = (e: React.DragEvent, widgetId: WidgetId) => {
+        setDraggedWidget(widgetId);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', widgetId);
+    };
+
+    const onCanvasDragOver = (e: React.DragEvent, idx: number) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverIdx(idx);
+        setDragOverTray(false);
+    };
+
+    const onCanvasDrop = (e: React.DragEvent, dropIdx: number) => {
+        e.preventDefault();
+        const wId = e.dataTransfer.getData('text/plain') as WidgetId;
+        if (!wId) return;
+        const currentIdx = activeWidgets.indexOf(wId);
+        if (currentIdx === -1) {
+            addWidget(wId, dropIdx);
+        } else {
+            moveWidget(currentIdx, dropIdx);
+        }
+        setDraggedWidget(null);
+        setDragOverIdx(null);
+    };
+
+    const onTrayDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverTray(true);
+        setDragOverIdx(null);
+    };
+
+    const onTrayDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        const wId = e.dataTransfer.getData('text/plain') as WidgetId;
+        if (wId && activeWidgets.includes(wId)) removeWidget(wId);
+        setDraggedWidget(null);
+        setDragOverTray(false);
+    };
+
+    const onDragEnd = () => { setDraggedWidget(null); setDragOverIdx(null); setDragOverTray(false); };
+
+    return (
+        <div className="relative">
+            {!isPro && (
+                <div className="absolute inset-0 z-20 bg-slate-50/60 backdrop-blur-sm rounded-[2.5rem] flex flex-col items-center justify-center border border-slate-200/50 shadow-inner">
+                    <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-slate-200/60 max-w-sm text-center flex flex-col items-center transform -translate-y-8">
+                        <div className="h-16 w-16 rounded-full bg-blue-50 border-4 border-white shadow-sm flex items-center justify-center mb-6"><Lock className="h-8 w-8 text-[#1B2BB8]" /></div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">Premium Analytics Locked</h3>
+                        <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-[260px] mb-6">Advanced AI analytics are not available during the trial period. Upgrade to unlock these insights.</p>
+                        <Button className="w-full bg-[#1B2BB8] hover:bg-blue-800 text-white font-bold rounded-xl shadow-md transition-all active:scale-95" onClick={onUpgradeClick}>Upgrade Now</Button>
+                    </div>
+                </div>
+            )}
+
+            <div className={`${!isPro ? 'opacity-40 pointer-events-none select-none filter grayscale-[30%]' : ''}`}>
+                <div className="flex gap-6">
+                    {/* ── Main canvas ── */}
+                    <div className="flex-1 min-w-0">
+                        {activeWidgets.length === 0 ? (
+                            <div
+                                className={`border-2 border-dashed rounded-[2rem] p-16 flex flex-col items-center justify-center text-center transition-colors min-h-[420px] ${draggedWidget && !dragOverTray ? 'border-[#1B2BB8] bg-blue-50/30' : 'border-slate-200 bg-slate-50/30'}`}
+                                onDragOver={(e) => onCanvasDragOver(e, 0)}
+                                onDrop={(e) => onCanvasDrop(e, 0)}
+                            >
+                                <div className="h-16 w-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center mb-6">
+                                    <BarChart3 className="h-7 w-7 text-slate-300" />
                                 </div>
-                                <div className="space-y-5">
-                                    {section.metrics}
+                                <h3 className="text-lg font-bold text-slate-700 mb-2">Your Analytics Dashboard</h3>
+                                <p className="text-sm text-slate-400 font-medium max-w-md leading-relaxed mb-6">
+                                    Drag widgets from the panel on the right to build your custom analytics view. Arrange them in any order you prefer.
+                                </p>
+                                <div className="flex items-center gap-2 text-xs font-bold text-[#1B2BB8] bg-blue-50 px-4 py-2 rounded-full border border-blue-100">
+                                    <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+                                    Drag widgets here
                                 </div>
                             </div>
-                        ))}
+                        ) : (
+                            <div className="space-y-4">
+                                {activeWidgets.map((wId, idx) => {
+                                    const def = WIDGET_CATALOG.find(w => w.id === wId);
+                                    if (!def) return null;
+                                    return (
+                                        <React.Fragment key={wId}>
+                                            <div
+                                                className={`h-1 rounded-full transition-all ${dragOverIdx === idx && draggedWidget !== wId ? 'bg-[#1B2BB8]/20 h-14 border-2 border-dashed border-[#1B2BB8]/40 flex items-center justify-center' : ''}`}
+                                                onDragOver={(e) => onCanvasDragOver(e, idx)}
+                                                onDrop={(e) => onCanvasDrop(e, idx)}
+                                            >
+                                                {dragOverIdx === idx && draggedWidget !== wId && <span className="text-[10px] font-bold text-[#1B2BB8]/60 uppercase tracking-wider">Drop here</span>}
+                                            </div>
+                                            <div
+                                                draggable
+                                                onDragStart={(e) => onCanvasDragStart(e, wId)}
+                                                onDragEnd={onDragEnd}
+                                                className={`relative group/widget transition-all ${draggedWidget === wId ? 'opacity-40 scale-[0.98]' : ''}`}
+                                            >
+                                                <div className="absolute -top-3 right-4 z-10 opacity-0 group-hover/widget:opacity-100 transition-opacity flex items-center gap-1">
+                                                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full shadow-lg border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-grab active:cursor-grabbing">
+                                                        <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor"><circle cx="4" cy="4" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="10" cy="4" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="10" cy="12" r="1.5"/></svg>
+                                                        Drag
+                                                    </span>
+                                                    <button
+                                                        onClick={() => removeWidget(wId)}
+                                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-white rounded-full shadow-lg border border-red-100 text-[10px] font-bold text-red-400 uppercase tracking-wider hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                    >
+                                                        <Minus className="h-3 w-3" />
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                                {renderWidgetContent(wId)}
+                                            </div>
+                                        </React.Fragment>
+                                    );
+                                })}
+                                <div
+                                    className={`h-1 rounded-full transition-all ${dragOverIdx === activeWidgets.length ? 'bg-[#1B2BB8]/20 h-14 border-2 border-dashed border-[#1B2BB8]/40 flex items-center justify-center' : ''}`}
+                                    onDragOver={(e) => onCanvasDragOver(e, activeWidgets.length)}
+                                    onDrop={(e) => onCanvasDrop(e, activeWidgets.length)}
+                                >
+                                    {dragOverIdx === activeWidgets.length && <span className="text-[10px] font-bold text-[#1B2BB8]/60 uppercase tracking-wider">Drop here</span>}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
 
-                {/* Security & Compliance */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <Shield className={`h-3 w-3 ${analytics.recording_compliance ? 'text-emerald-500' : 'text-slate-300'}`} />
-                        <span>Compliance: {analytics.recording_compliance ? 'VERIFIED' : 'PENDING'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <Shield className={`h-3 w-3 ${analytics.confidentiality_maintained ? 'text-emerald-500' : 'text-slate-300'}`} />
-                        <span>Secure: {analytics.confidentiality_maintained ? 'YES' : 'NO'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <CheckCircle2 className={`h-3 w-3 ${analytics.meeting_minutes_shared ? 'text-emerald-500' : 'text-slate-300'}`} />
-                        <span>Log Shared: {analytics.meeting_minutes_shared ? 'YES' : 'NO'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <Award className={`h-3 w-3 ${analytics.action_items_tracked ? 'text-emerald-500' : 'text-slate-300'}`} />
-                        <span>Items Tracked: {analytics.action_items_tracked ? 'YES' : 'NO'}</span>
+                    {/* ── Widget tray ── */}
+                    <div className="w-[260px] shrink-0">
+                        <div
+                            className={`sticky top-4 rounded-2xl border transition-colors ${dragOverTray ? 'border-[#1B2BB8] bg-blue-50/40 shadow-lg' : 'border-slate-200 bg-white shadow-sm'}`}
+                            onDragOver={onTrayDragOver}
+                            onDragLeave={() => setDragOverTray(false)}
+                            onDrop={onTrayDrop}
+                        >
+                            <button onClick={() => setTrayOpen(!trayOpen)} className="w-full flex items-center justify-between p-4 border-b border-slate-100">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-1.5 bg-[#1B2BB8]/10 rounded-lg"><Zap className="h-3.5 w-3.5 text-[#1B2BB8]" /></div>
+                                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Widget Tray</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{availableWidgets.length}</span>
+                                    <ChevronRight className={`h-3.5 w-3.5 text-slate-400 transition-transform ${trayOpen ? 'rotate-90' : ''}`} />
+                                </div>
+                            </button>
+
+                            {trayOpen && (
+                                <div className="p-3 space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
+                                    {availableWidgets.length === 0 ? (
+                                        <div className="py-8 text-center">
+                                            <CheckCircle2 className="h-6 w-6 text-emerald-400 mx-auto mb-2" />
+                                            <p className="text-xs font-bold text-slate-500">All widgets placed!</p>
+                                            <p className="text-[10px] text-slate-400 mt-1">Drag widgets back here to remove them.</p>
+                                        </div>
+                                    ) : (
+                                        availableWidgets.map(w => (
+                                            <div
+                                                key={w.id}
+                                                draggable
+                                                onDragStart={(e) => onTrayDragStart(e, w.id)}
+                                                onDragEnd={onDragEnd}
+                                                onClick={() => addWidget(w.id)}
+                                                className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 hover:shadow-md cursor-grab active:cursor-grabbing transition-all group/tray-item"
+                                            >
+                                                <div className="p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm group-hover/tray-item:border-blue-200 group-hover/tray-item:shadow-blue-100/50 transition-all">
+                                                    {w.icon}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-bold text-slate-700 truncate">{w.label}</p>
+                                                    <p className="text-[10px] text-slate-400 font-medium truncate">{w.description}</p>
+                                                </div>
+                                                <UserPlus className="h-3.5 w-3.5 text-slate-300 group-hover/tray-item:text-[#1B2BB8] transition-colors shrink-0" />
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {activeWidgets.length > 0 && (
+                                <div className="p-3 border-t border-slate-100">
+                                    <button
+                                        onClick={() => setActiveWidgets([])}
+                                        className="w-full text-[10px] font-bold text-red-400 uppercase tracking-wider py-2 rounded-lg hover:bg-red-50 transition-colors"
+                                    >
+                                        Clear Dashboard
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

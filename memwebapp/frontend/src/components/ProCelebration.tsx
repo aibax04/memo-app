@@ -137,14 +137,17 @@ const ProCelebration: React.FC<ProCelebrationProps> = ({
 
         switch (p.type) {
             case 'confetti': {
-                // 3D-ish confetti rectangle
                 const scaleX = Math.cos(p.life * 0.1) * 0.6 + 0.4;
                 ctx.scale(scaleX, 1);
                 ctx.fillStyle = p.color;
                 ctx.shadowColor = p.color;
                 ctx.shadowBlur = 6;
                 ctx.beginPath();
-                ctx.roundRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.6, 2);
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.6, 2);
+                } else {
+                    ctx.rect(-p.size / 2, -p.size / 3, p.size, p.size * 0.6);
+                }
                 ctx.fill();
                 break;
             }
@@ -211,10 +214,16 @@ const ProCelebration: React.FC<ProCelebrationProps> = ({
         particlesRef.current = [];
         startTimeRef.current = performance.now();
 
+        // Guaranteed auto-dismiss: even if canvas errors, never stay visible forever
+        const safetyTimer = setTimeout(() => {
+            setFadeOut(true);
+            setTimeout(() => { setVisible(false); setShowBadge(false); onComplete?.(); }, 600);
+        }, duration + 2000);
+
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas) { clearTimeout(safetyTimer); return; }
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) { clearTimeout(safetyTimer); return; }
 
         const resize = () => {
             canvas.width = window.innerWidth;
@@ -242,85 +251,87 @@ const ProCelebration: React.FC<ProCelebrationProps> = ({
         let lastRain = 0;
 
         const animate = (now: number) => {
-            const elapsed = now - startTimeRef.current;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            try {
+                const elapsed = now - startTimeRef.current;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Continuous confetti rain for the first 3 seconds
-            if (elapsed < 3000 && now - lastRain > 60) {
-                createRain(canvas.width, 8);
-                lastRain = now;
-            }
-
-            // Secondary bursts at intervals
-            if (Math.abs(elapsed - 800) < 20) {
-                createBurst(w * 0.3, h * 0.4, 50);
-                createBurst(w * 0.7, h * 0.4, 50);
-            }
-            if (Math.abs(elapsed - 1500) < 20) {
-                createBurst(w / 2, h * 0.3, 60);
-                createSparkleField(w, h, 30);
-            }
-            if (Math.abs(elapsed - 2200) < 20) {
-                createBurst(w * 0.4, h * 0.5, 30);
-                createBurst(w * 0.6, h * 0.5, 30);
-            }
-
-            // Draw golden radial glow behind everything
-            if (elapsed < 3500) {
-                const glowAlpha = Math.min(1, elapsed / 500) * Math.max(0, 1 - (elapsed - 2500) / 1000);
-                const gradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.5);
-                gradient.addColorStop(0, `rgba(255, 215, 0, ${0.12 * glowAlpha})`);
-                gradient.addColorStop(0.5, `rgba(245, 158, 11, ${0.06 * glowAlpha})`);
-                gradient.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-
-            // Update & draw particles
-            particlesRef.current = particlesRef.current.filter((p) => {
-                p.life++;
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += p.gravity;
-                p.vx *= 0.99;
-                p.rotation += p.rotationSpeed;
-
-                if (p.type === 'sparkle') {
-                    const progress = p.life / p.maxLife;
-                    p.alpha = Math.sin(progress * Math.PI);
-                } else {
-                    const lifeRatio = p.life / p.maxLife;
-                    p.alpha = lifeRatio > 0.7 ? lerp(1, 0, (lifeRatio - 0.7) / 0.3) : 1;
+                if (elapsed < 3000 && now - lastRain > 60) {
+                    createRain(canvas.width, 8);
+                    lastRain = now;
                 }
 
-                if (p.life >= p.maxLife || p.alpha <= 0.01) return false;
-                if (p.y > canvas.height + 50) return false;
+                if (Math.abs(elapsed - 800) < 20) {
+                    createBurst(w * 0.3, h * 0.4, 50);
+                    createBurst(w * 0.7, h * 0.4, 50);
+                }
+                if (Math.abs(elapsed - 1500) < 20) {
+                    createBurst(w / 2, h * 0.3, 60);
+                    createSparkleField(w, h, 30);
+                }
+                if (Math.abs(elapsed - 2200) < 20) {
+                    createBurst(w * 0.4, h * 0.5, 30);
+                    createBurst(w * 0.6, h * 0.5, 30);
+                }
 
-                drawParticle(ctx, p);
-                return true;
-            });
+                if (elapsed < 3500) {
+                    const glowAlpha = Math.min(1, elapsed / 500) * Math.max(0, 1 - (elapsed - 2500) / 1000);
+                    const gradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.5);
+                    gradient.addColorStop(0, `rgba(255, 215, 0, ${0.12 * glowAlpha})`);
+                    gradient.addColorStop(0.5, `rgba(245, 158, 11, ${0.06 * glowAlpha})`);
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
 
-            // End condition
-            if (elapsed >= duration) {
+                particlesRef.current = particlesRef.current.filter((p) => {
+                    p.life++;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.vx *= 0.99;
+                    p.rotation += p.rotationSpeed;
+
+                    if (p.type === 'sparkle') {
+                        const progress = p.life / p.maxLife;
+                        p.alpha = Math.sin(progress * Math.PI);
+                    } else {
+                        const lifeRatio = p.life / p.maxLife;
+                        p.alpha = lifeRatio > 0.7 ? lerp(1, 0, (lifeRatio - 0.7) / 0.3) : 1;
+                    }
+
+                    if (p.life >= p.maxLife || p.alpha <= 0.01) return false;
+                    if (p.y > canvas.height + 50) return false;
+
+                    drawParticle(ctx, p);
+                    return true;
+                });
+
+                if (elapsed >= duration) {
+                    setFadeOut(true);
+                    setTimeout(() => {
+                        setVisible(false);
+                        setShowBadge(false);
+                        onComplete?.();
+                    }, 600);
+                    return;
+                }
+
+                if (elapsed >= duration - 800) {
+                    setFadeOut(true);
+                }
+
+                animFrameRef.current = requestAnimationFrame(animate);
+            } catch (e) {
+                console.warn('ProCelebration animation error', e);
                 setFadeOut(true);
-                setTimeout(() => {
-                    setVisible(false);
-                    setShowBadge(false);
-                    onComplete?.();
-                }, 600);
-                return;
+                setTimeout(() => { setVisible(false); setShowBadge(false); onComplete?.(); }, 300);
             }
-
-            if (elapsed >= duration - 800) {
-                setFadeOut(true);
-            }
-
-            animFrameRef.current = requestAnimationFrame(animate);
         };
 
         animFrameRef.current = requestAnimationFrame(animate);
 
         return () => {
+            clearTimeout(safetyTimer);
             cancelAnimationFrame(animFrameRef.current);
             window.removeEventListener('resize', resize);
         };

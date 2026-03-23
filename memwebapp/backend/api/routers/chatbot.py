@@ -7,8 +7,8 @@ from api.services.auth_service import get_current_user
 from api.models.user import User
 from api.models.meeting import MeetingRecord
 from api.services.chat_service import chat_service
+from api.services.meeting_context_builder import build_meeting_context_string
 import logging
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -40,32 +40,7 @@ async def chat(
             ).first()
             
             if meeting:
-                # Build context from transcription and summary
-                context_parts = []
-                if meeting.title:
-                    context_parts.append(f"Meeting Title: {meeting.title}")
-                if meeting.summary:
-                    context_parts.append(f"Summary: {meeting.summary}")
-                
-                if meeting.analytics_data:
-                    context_parts.append(f"Analytics & Performance Data:\n{json.dumps(meeting.analytics_data, indent=2)}")
-
-                if meeting.transcription:
-                    # Limit transcription size to avoid token limits for now
-                    trans_text = ""
-                    if isinstance(meeting.transcription, list):
-                        segments = []
-                        for s in meeting.transcription[:50]: # First 50 segments
-                            speaker = s.get('speaker', 'Unknown')
-                            text = s.get('text', '')
-                            segments.append(f"{speaker}: {text}")
-                        trans_text = "\n".join(segments)
-                    else:
-                        trans_text = str(meeting.transcription)[:2000]
-                    
-                    context_parts.append(f"Transcript Snippet:\n{trans_text}")
-                
-                meeting_context = "\n\n".join(context_parts)
+                meeting_context = build_meeting_context_string(meeting, max_transcript_segments=50)
         except Exception as e:
             logger.error(f"Error fetching meeting context: {e}")
 

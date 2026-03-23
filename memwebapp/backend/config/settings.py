@@ -64,6 +64,9 @@ class Settings:
     # Frontend settings
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
     
+    # Public self-service signup (/users/) — set PUBLIC_SIGNUP_ENABLED=false to disable
+    PUBLIC_SIGNUP_ENABLED: bool = os.getenv("PUBLIC_SIGNUP_ENABLED", "true").lower() in ("true", "1", "yes")
+
     # Admin settings
     ADMIN_KEY: str = os.getenv("ADMIN_KEY", "")
     PROMO_CODE: str = os.getenv("PROMO_CODE", "MEMOUSER7860")

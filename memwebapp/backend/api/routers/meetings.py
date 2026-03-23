@@ -1,13 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime, timezone
 from database.connection import get_db
 from api.services.auth_service import get_current_user
 from api.models.user import User
 from api.models.meeting import MeetingRecord, TranscriptionStatus
-from api.schemas.meeting import MeetingRecordResponse, MeetingRecordUpdate, MeetingRecordCreate, PaginatedMeetingsResponse, SpeakerNameUpdate, SpeakerMergeUpdate
+from api.models.grouped_meeting_analysis import GroupedMeetingAnalysis
+from api.schemas.meeting import (
+    MeetingRecordResponse,
+    MeetingRecordUpdate,
+    MeetingRecordCreate,
+    PaginatedMeetingsResponse,
+    SpeakerNameUpdate,
+    SpeakerMergeUpdate,
+    BulkDeleteMeetingsRequest,
+    GroupedAnalysisRunRequest,
+    GroupedAnalysisSaveRequest,
+)
 from api.services import meeting_service
+from api.services.grouped_meeting_analysis_service import grouped_meeting_analysis_service
 from api.services.ai_suggestion_service import ai_suggestion_service
+from api.services.chat_service import chat_service
+from api.services.meeting_context_builder import build_meeting_context_string
+from api.services.buyer_intent_service import buyer_intent_service
 from api.services.s3_service import s3_service
 from api.services.audio_service import AudioProcessor
 import logging
@@ -22,6 +39,18 @@ if not logging.getLogger().handlers:
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 logger = logging.getLogger(__name__)
+
+
+def _assert_free_tier_meeting_access(
+    db: Session, current_user: User, db_meeting: MeetingRecord
+) -> None:
+    """Non-Pro users may only access their 10 most recent meetings (by created_at)."""
+    if meeting_service.user_has_active_pro(db, current_user.id):
+        return
+    allowed = meeting_service.get_free_tier_visible_meeting_ids(db, current_user.id)
+    if db_meeting.id not in allowed:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
 
 # Initialize dependencies
 audio_processor = AudioProcessor()
@@ -310,8 +339,6 @@ async def suggest_description_for_audio(
                 pass
 
 
-from api.models.pro_subscription import ProSubscription
-
 @router.post("/", response_model=MeetingRecordResponse, status_code=status.HTTP_201_CREATED)
 async def create_meeting(
     title: str = Form(...),
@@ -328,14 +355,8 @@ async def create_meeting(
     Create a new meeting record with mobile mic audio processing
     """
     try:
-        # Check pro subscription
-        pro_sub = db.query(ProSubscription).filter(
-            ProSubscription.user_id == current_user.id,
-            ProSubscription.is_active == True
-        ).first()
-
         user_meetings_count = db.query(MeetingRecord).filter(MeetingRecord.user_id == current_user.id).count()
-        if not pro_sub and user_meetings_count >= 10:
+        if not meeting_service.user_has_active_pro(db, current_user.id) and user_meetings_count >= meeting_service.FREE_TIER_VISIBLE_MEETING_CAP:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You have reached the maximum allowed 10 recordings for your trial period. Please contact support to unlock more recordings."
@@ -603,32 +624,240 @@ def get_meetings(
     """
     Get all meetings for the current user with filtering
     """
-    meetings, total_count = meeting_service.get_meetings_with_filters(
-        db, 
-        current_user.id, 
-        status, 
-        analytics_status, 
-        search,
-        date_from,
-        date_to,
-        skip, 
-        limit
-    )
-    
+    is_pro = meeting_service.user_has_active_pro(db, current_user.id)
+    cap = meeting_service.FREE_TIER_VISIBLE_MEETING_CAP
+
+    if is_pro:
+        eff_skip, eff_limit = skip, limit
+    else:
+        eff_skip = skip
+        eff_limit = min(limit, max(0, cap - skip))
+
+    if not is_pro and eff_limit <= 0:
+        meetings = []
+        _, full_total = meeting_service.get_meetings_with_filters(
+            db,
+            current_user.id,
+            status,
+            analytics_status,
+            search,
+            date_from,
+            date_to,
+            0,
+            1,
+        )
+    else:
+        meetings, full_total = meeting_service.get_meetings_with_filters(
+            db,
+            current_user.id,
+            status,
+            analytics_status,
+            search,
+            date_from,
+            date_to,
+            eff_skip,
+            eff_limit,
+        )
+
+    display_total = full_total if is_pro else min(full_total, cap)
+    has_more = (not is_pro) and (full_total > cap)
+
     # Convert to new response format
     data = [meeting_service.convert_meeting_to_response_format(m, include_details=False) for m in meetings]
-    
-    # Calculate pagination
+
+    # Calculate pagination (use request `limit` so page numbers stay consistent with client)
     page = (skip // limit) + 1 if limit > 0 else 1
-    total_pages = (total_count + limit - 1) // limit if limit > 0 else 1
-    
+    total_pages = (display_total + limit - 1) // limit if limit > 0 else 1
+
     return {
         "data": data,
-        "total": total_count,
+        "total": display_total,
         "page": page,
         "limit": limit,
-        "total_pages": total_pages
+        "total_pages": total_pages,
+        "has_more_meetings_on_account": has_more,
     }
+
+
+@router.post("/bulk-delete", response_model=dict)
+def bulk_delete_meetings(
+    body: BulkDeleteMeetingsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Delete multiple meetings at once. Pro subscribers only; each ID must belong to the current user.
+    """
+    if not meeting_service.user_has_active_pro(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Pro subscribers can delete meetings. Upgrade to manage your library.",
+        )
+
+    deleted = meeting_service.delete_meeting_records_for_user_bulk(
+        db, current_user.id, body.meeting_ids
+    )
+    requested = len(set(body.meeting_ids))
+    return {
+        "status": "success",
+        "deleted": deleted,
+        "requested": requested,
+        "message": f"Deleted {deleted} meeting(s).",
+    }
+
+
+def _require_pro_for_grouped_analysis(db: Session, current_user: User) -> None:
+    if not meeting_service.user_has_active_pro(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Grouped meeting analysis is a Pro feature. Upgrade to unlock.",
+        )
+
+
+@router.post("/grouped-analysis/run", response_model=dict)
+async def run_grouped_meeting_analysis(
+    body: GroupedAnalysisRunRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    AI combined analysis across multiple meetings (Gemini). Pro only; min 2 meetings you own.
+    """
+    _require_pro_for_grouped_analysis(db, current_user)
+    try:
+        analysis = await grouped_meeting_analysis_service.analyse(
+            db, current_user.id, body.meeting_ids
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        msg = str(e)
+        if "not configured" in msg.lower() or "gemini" in msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="AI service is not configured.",
+            )
+        raise HTTPException(status_code=500, detail=msg)
+
+    return {
+        "success": True,
+        "analysis": analysis,
+        "meeting_ids": [str(x) for x in body.meeting_ids],
+    }
+
+
+@router.post("/grouped-analysis/save", response_model=dict)
+def save_grouped_meeting_analysis(
+    body: GroupedAnalysisSaveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist a grouped analysis to the library (dashboard sidebar)."""
+    _require_pro_for_grouped_analysis(db, current_user)
+    ids_set = set(body.meeting_ids)
+    found = (
+        db.query(MeetingRecord.id)
+        .filter(
+            MeetingRecord.user_id == current_user.id,
+            MeetingRecord.id.in_(ids_set),
+        )
+        .count()
+    )
+    if found != len(ids_set):
+        raise HTTPException(
+            status_code=400,
+            detail="One or more meetings were not found or do not belong to you.",
+        )
+
+    title = body.title
+    if not title:
+        title = f"Grouped analysis ({len(body.meeting_ids)} meetings) · {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC"
+
+    row = GroupedMeetingAnalysis(
+        user_id=current_user.id,
+        title=title[:500],
+        meeting_ids=[str(x) for x in body.meeting_ids],
+        analysis=body.analysis,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"success": True, "id": str(row.id), "title": row.title}
+
+
+@router.get("/grouped-analysis/saved", response_model=dict)
+def list_saved_grouped_analyses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_pro_for_grouped_analysis(db, current_user)
+    rows = (
+        db.query(GroupedMeetingAnalysis)
+        .filter(GroupedMeetingAnalysis.user_id == current_user.id)
+        .order_by(GroupedMeetingAnalysis.created_at.desc())
+        .limit(100)
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "id": str(r.id),
+                "title": r.title,
+                "meeting_count": len(r.meeting_ids) if isinstance(r.meeting_ids, list) else 0,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.get("/grouped-analysis/saved/{analysis_id}", response_model=dict)
+def get_saved_grouped_analysis(
+    analysis_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_pro_for_grouped_analysis(db, current_user)
+    row = (
+        db.query(GroupedMeetingAnalysis)
+        .filter(
+            GroupedMeetingAnalysis.id == analysis_id,
+            GroupedMeetingAnalysis.user_id == current_user.id,
+        )
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Saved analysis not found")
+    return {
+        "id": str(row.id),
+        "title": row.title,
+        "meeting_ids": row.meeting_ids,
+        "analysis": row.analysis,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
+@router.delete("/grouped-analysis/saved/{analysis_id}", response_model=dict)
+def delete_saved_grouped_analysis(
+    analysis_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_pro_for_grouped_analysis(db, current_user)
+    row = (
+        db.query(GroupedMeetingAnalysis)
+        .filter(
+            GroupedMeetingAnalysis.id == analysis_id,
+            GroupedMeetingAnalysis.user_id == current_user.id,
+        )
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Saved analysis not found")
+    db.delete(row)
+    db.commit()
+    return {"success": True}
+
 
 @router.get("/speakers", response_model=List[dict])
 def get_unique_speakers(
@@ -651,16 +880,116 @@ def get_meetings_by_speaker(
     """
     Get meetings where a specific speaker participated
     """
-    meetings, total_count = meeting_service.search_meetings_by_speaker(
-        db, current_user.id, speaker_name, skip, limit
-    )
-    
+    is_pro = meeting_service.user_has_active_pro(db, current_user.id)
+    cap = meeting_service.FREE_TIER_VISIBLE_MEETING_CAP
+    allowed = None
+    if not is_pro:
+        allowed = set(meeting_service.get_free_tier_visible_meeting_ids(db, current_user.id))
+
+    if not is_pro:
+        eff_skip, eff_limit = skip, min(limit, max(0, cap - skip))
+        if eff_limit <= 0:
+            meetings = []
+            full_total = meeting_service.search_meetings_by_speaker(
+                db, current_user.id, speaker_name, 0, cap, allowed_meeting_ids=allowed
+            )[1]
+        else:
+            meetings, full_total = meeting_service.search_meetings_by_speaker(
+                db, current_user.id, speaker_name, eff_skip, eff_limit, allowed_meeting_ids=allowed
+            )
+        display_total = min(full_total, cap)
+    else:
+        meetings, full_total = meeting_service.search_meetings_by_speaker(
+            db, current_user.id, speaker_name, skip, limit
+        )
+        display_total = full_total
+
     return {
         "items": [meeting_service.convert_meeting_to_response_format(m) for m in meetings],
-        "total": total_count,
+        "total": display_total,
         "skip": skip,
-        "limit": limit
+        "limit": limit,
     }
+
+
+@router.post("/{meeting_id}/buyer-intent", response_model=dict)
+async def analyse_buyer_intent(
+    meeting_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    AI-powered buyer / consumer intent analysis.
+    Returns emotional arc, purchase readiness, question quality, deal health, etc.
+    """
+    db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
+    if db_meeting is None:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
+
+    try:
+        ctx = build_meeting_context_string(db_meeting, max_transcript_segments=120)
+        result = await buyer_intent_service.analyse(ctx)
+        return {"success": True, "data": result}
+    except RuntimeError as e:
+        msg = str(e)
+        if "not configured" in msg.lower() or "gemini" in msg.lower():
+            raise HTTPException(status_code=503, detail="AI service is not configured.")
+        raise HTTPException(status_code=500, detail=msg)
+    except Exception:
+        logger.exception("buyer_intent analysis failed")
+        raise HTTPException(status_code=500, detail="Analysis failed. Please try again.")
+
+
+ALLOWED_EMAIL_TONES = frozenset({"professional", "friendly", "concise", "formal", "warm"})
+
+
+class DraftFollowUpEmailRequest(BaseModel):
+    tone: str = Field(default="professional", description="professional | friendly | concise | formal | warm")
+    extra_instructions: Optional[str] = Field(default=None, max_length=2000)
+
+
+@router.post("/{meeting_id}/draft-follow-up-email", response_model=dict)
+async def draft_follow_up_email(
+    meeting_id: uuid.UUID,
+    body: DraftFollowUpEmailRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    AI-draft a follow-up email from this meeting's summary, transcript, and analytics.
+    Uses Gemini (GEMINI_KEY). For sending, the client can open Gmail compose or copy text.
+    """
+    db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
+    if db_meeting is None:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
+
+    tone = (body.tone or "professional").lower().strip()
+    if tone not in ALLOWED_EMAIL_TONES:
+        tone = "professional"
+
+    try:
+        ctx = build_meeting_context_string(db_meeting)
+        result = await chat_service.draft_follow_up_email(
+            meeting_title=db_meeting.title or "Meeting",
+            meeting_context=ctx,
+            tone=tone,
+            extra_instructions=body.extra_instructions,
+        )
+        return {"success": True, **result}
+    except RuntimeError as e:
+        msg = str(e)
+        if "not configured" in msg.lower() or "gemini" in msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="Email drafting is unavailable: AI service is not configured.",
+            )
+        raise HTTPException(status_code=500, detail=msg)
+    except Exception as e:
+        logger.exception("draft_follow_up_email failed")
+        raise HTTPException(status_code=500, detail="Failed to draft email. Please try again.")
+
 
 @router.get("/{meeting_id}", response_model=dict)
 def get_meeting(
@@ -674,6 +1003,7 @@ def get_meeting(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if db_meeting is None:
         raise HTTPException(status_code=404, detail="Meeting not found")
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
     return meeting_service.convert_meeting_to_response_format(db_meeting)
 
 @router.get("/{meeting_id}/audio/url", response_model=dict)
@@ -689,7 +1019,8 @@ def get_meeting_audio_url(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if db_meeting is None:
         raise HTTPException(status_code=404, detail="Meeting not found")
-    
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
+
     if not db_meeting.s3_audio_path:
         raise HTTPException(status_code=404, detail="No audio file associated with this meeting")
         
@@ -741,7 +1072,8 @@ def update_meeting(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if db_meeting is None:
         raise HTTPException(status_code=404, detail="Meeting not found")
-        
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
+
     updated_meeting = meeting_service.update_meeting_record(db, meeting_id, meeting)
     return meeting_service.convert_meeting_to_response_format(updated_meeting)
 
@@ -758,7 +1090,13 @@ def delete_meeting(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if db_meeting is None:
         raise HTTPException(status_code=404, detail="Meeting not found")
-        
+
+    if not meeting_service.user_has_active_pro(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Pro subscribers can delete meetings. Upgrade to manage your full library.",
+        )
+
     success = meeting_service.delete_meeting_record(db, meeting_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete meeting")
@@ -779,6 +1117,7 @@ def rename_speaker(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if db_meeting is None:
         raise HTTPException(status_code=404, detail="Meeting not found")
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
 
     old_name = update.old_speaker_name
     new_name = update.new_speaker_name
@@ -847,6 +1186,7 @@ def merge_speakers(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if db_meeting is None:
         raise HTTPException(status_code=404, detail="Meeting not found")
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
 
     target = update.target_speaker
     sources = set(update.source_speakers)
@@ -912,7 +1252,8 @@ async def reprocess_meeting(
     db_meeting = meeting_service.get_meeting_record_by_user(db, meeting_id, current_user.id)
     if not db_meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
-    
+    _assert_free_tier_meeting_access(db, current_user, db_meeting)
+
     # Reset status
     db_meeting.status = TranscriptionStatus.PENDING
     db_meeting.is_processed = False

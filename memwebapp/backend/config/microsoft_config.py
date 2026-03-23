@@ -13,7 +13,7 @@ class MicrosoftConfig:
     TENANT_ID = os.getenv("MICROSOFT_TENANT_ID", "")
     
     # Redirect URI for OAuth2 flow - MUST be HTTP/HTTPS for Azure Portal
-    # The custom scheme (memoapp://) is handled by your backend after authentication
+    # The custom scheme (ownnote://) is handled by your backend after authentication
     REDIRECT_URI = os.getenv("MICROSOFT_REDIRECT_URI", "")
     
     # Company domain validation - will be set from settings

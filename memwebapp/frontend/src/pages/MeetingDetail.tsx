@@ -32,7 +32,7 @@ import { useAuth } from '@/context/AuthContext';
 import ChatBot from '@/components/ChatBot';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, AreaChart, Area, Legend } from 'recharts';
 
-type TabType = 'transcription' | 'summary' | 'analytics' | 'audio' | 'memo_bot';
+type TabType = 'transcription' | 'summary' | 'analytics' | 'audio' | 'ownnote_bot';
 
 const SPEAKER_COLORS = [
     { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', accent: '#1B2BB8' },
@@ -127,7 +127,7 @@ const MeetingDetail: React.FC = () => {
     useEffect(() => {
         if (!id) { navigate('/meetings'); return; }
         const loadMeeting = async () => {
-            const token = localStorage.getItem('memoapp_access_token');
+            const token = localStorage.getItem('ownnote_access_token');
             if (!token) {
                 console.log('🚫 No access token found, skipping meeting load');
                 return;
@@ -623,7 +623,7 @@ const MeetingDetail: React.FC = () => {
                     { id: 'summary', label: 'Summary', icon: <MessageSquare className="h-4 w-4" /> },
                     { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
                     { id: 'transcription', label: 'Transcripts', icon: <FileText className="h-4 w-4" /> },
-                    { id: 'memo_bot', label: 'Ask Memo Bot', icon: <Bot className="h-4 w-4" /> },
+                    { id: 'ownnote_bot', label: 'Ask OWNnote Bot', icon: <Bot className="h-4 w-4" /> },
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -666,9 +666,9 @@ const MeetingDetail: React.FC = () => {
                                 isRenaming={isRenaming}
                             />
                         )}
-                        {activeTab === 'memo_bot' && (
+                        {activeTab === 'ownnote_bot' && (
                             <ChatBot
-                                key={`memo-bot-${meeting.id}`}
+                                key={`ownnote-bot-${meeting.id}`}
                                 meetings={[meeting]}
                                 variant="embedded"
                                 contextMeetingId={String(meeting.id)}
@@ -896,7 +896,7 @@ const WIDGET_CATALOG: WidgetDef[] = [
     { id: 'compliance', label: 'Security & Compliance', description: 'Compliance, security & tracking', icon: <Shield className="h-4 w-4" />, category: 'compliance' },
 ];
 
-const LAYOUT_STORAGE_KEY = 'memo_analytics_layout';
+const LAYOUT_STORAGE_KEY = 'ownnote_analytics_layout';
 
 const AnalyticsView = ({ meeting, isPro, onUpgradeClick }: any) => {
     const analytics = meeting.analytics_data;

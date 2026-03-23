@@ -1,5 +1,5 @@
 /**
- * Memo App Meeting Recorder - Localhost Content Script
+ * OWNnote Meeting Recorder - Localhost Content Script
  * Syncs authentication data from the web app to the extension
  */
 
@@ -80,7 +80,7 @@ function syncAuthToExtension() {
 
   let authDataString;
   try {
-    authDataString = localStorage.getItem('memoapp_auth_data');
+    authDataString = localStorage.getItem('ownnote_auth_data');
   } catch (e) {
     return;
   }
@@ -121,7 +121,7 @@ function syncAuthToExtension() {
 
 window.addEventListener('storage', function (event) {
   if (!isContextValid) return;
-  if (event.key === 'memoapp_auth_data') {
+  if (event.key === 'ownnote_auth_data') {
     syncAuthToExtension();
   }
 });
@@ -131,7 +131,7 @@ window.addEventListener('storage', function (event) {
   const originalSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
     originalSetItem(key, value);
-    if (key === 'memoapp_auth_data' && isContextValid) {
+    if (key === 'ownnote_auth_data' && isContextValid) {
       setTimeout(syncAuthToExtension, 100);
     }
   };
@@ -148,7 +148,7 @@ if (checkExtensionContext()) {
 
       if (request.action === 'GET_WEB_AUTH_DATA') {
         try {
-          const authDataString = localStorage.getItem('memoapp_auth_data');
+          const authDataString = localStorage.getItem('ownnote_auth_data');
           const authData = authDataString ? JSON.parse(authDataString) : null;
           sendResponse({ success: true, authData });
         } catch (error) {

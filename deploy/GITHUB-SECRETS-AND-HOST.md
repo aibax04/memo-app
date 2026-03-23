@@ -1,6 +1,6 @@
 # Set up deploy to run on your AWS host
 
-The workflow **Deploy Memo App to AWS EC2** (`.github/workflows/deploy-production.yml`) runs on every **push to `main`** and deploys to the host you configure below.
+The workflow **Deploy OWNnote to AWS EC2** (`.github/workflows/deploy-production.yml`) runs on every **push to `main`** and deploys to the host you configure below.
 
 ## 1. Add GitHub Secrets
 
@@ -64,7 +64,7 @@ Do **not** open 5173 or 8002 to the internet; nginx on 80 is the public entry.
 
 ## 4. Make sure the workflow runs on your host
 
-1. Push to **main** (or trigger **Actions → Deploy Memo App to AWS EC2 → Run workflow**).
+1. Push to **main** (or trigger **Actions → Deploy OWNnote to AWS EC2 → Run workflow**).
 2. Open **Actions** tab and click the running or latest workflow.
 3. If it fails, check the log; typical issues:
    - **EC2_HOST / EC2_SSH_KEY**: Wrong host, wrong key, or key not in PEM format.

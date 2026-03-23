@@ -11,7 +11,7 @@ import { AppSidebar } from "./AppSidebar";
 
 // Check if token has expired (7 days)
 const isTokenExpired = (): boolean => {
-  const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
+  const tokenTimestamp = localStorage.getItem('ownnote_token_timestamp');
   if (!tokenTimestamp) return true;
 
   const expiryTimeMs = parseInt(tokenTimestamp) + (7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
@@ -29,7 +29,7 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
 
   // Check for token expiration on route changes
   useEffect(() => {
-    const accessToken = localStorage.getItem("memoapp_access_token");
+    const accessToken = localStorage.getItem("ownnote_access_token");
     if (accessToken && isTokenExpired()) {
       console.log("🔒 Token expired while navigating, logging out user");
       toast.error("Your session has expired. Please log in again.");

@@ -63,4 +63,4 @@ export interface DishTvConversationSegment {
   timestamp: string;
 }
 
-export type DataSource = 'memoapp' | 'dishtv';
+export type DataSource = 'ownnote' | 'dishtv';

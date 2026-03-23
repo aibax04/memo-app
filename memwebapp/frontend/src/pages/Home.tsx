@@ -51,7 +51,7 @@ const Home: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <img
                         src="/lovable-uploads/image.png"
-                        alt="Memo App Logo"
+                        alt="OWNnote Logo"
                         className="h-16 w-auto object-contain drop-shadow-sm"
                     />
                 </div>
@@ -103,7 +103,7 @@ const Home: React.FC = () => {
                     </h1>
 
                     <p className="text-lg md:text-2xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
-                        Memo App transforms your conversation audio into structured, actionable intelligence. Perfect for sales teams, researchers, and project managers.
+                        OWNnote transforms your conversation audio into structured, actionable intelligence. Perfect for sales teams, researchers, and project managers.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
@@ -112,7 +112,7 @@ const Home: React.FC = () => {
                                 Try for Free
                             </Button>
                         </Link>
-                        <a href="https://makememo.ai/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                        <a href="https://ownnote.ai/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                             <Button className="w-full sm:w-auto h-16 px-10 rounded-2xl font-bold text-xl bg-white border-2 border-[#1B2BB8] text-[#1B2BB8] hover:bg-blue-50 transition-all active:scale-95 shadow-lg group flex items-center justify-center">
                                 <ArrowRight className="mr-2 h-6 w-6 transition-transform group-hover:translate-x-1" /> Know More
                             </Button>
@@ -136,7 +136,7 @@ const Home: React.FC = () => {
                                 <div className="h-3 w-3 rounded-full bg-emerald-400"></div>
                             </div>
                             <div className="mx-auto bg-white border border-slate-200 text-[10px] text-slate-400 px-4 py-1 rounded-full w-1/3 text-center">
-                                dash.makememo.ai/meetings
+                                dash.ownnote.ai/meetings
                             </div>
                         </div>
                         <img
@@ -322,7 +322,7 @@ const Home: React.FC = () => {
                             <span className="text-blue-200 font-['Caveat_Brush'] inline-block transform scale-[1.2] origin-center mt-4">start taking action?</span>
                         </h2>
                         <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-2xl mx-auto font-medium">
-                            Join 5,000+ professionals using Memo Intelligence to stay focused on the client, not the notepad.
+                            Join 5,000+ professionals using OWNnote Intelligence to stay focused on the client, not the notepad.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link to="/register" className="w-full sm:w-auto">

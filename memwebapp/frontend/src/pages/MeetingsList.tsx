@@ -24,11 +24,16 @@ import {
     type GroupedAnalysisData,
 } from '@/services/meetingApi';
 import { GroupedAnalysisViewer } from '@/components/GroupedAnalysisViewer';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import ChatBot from '@/components/ChatBot';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { isSameDay } from 'date-fns';
@@ -108,7 +113,7 @@ const MeetingsList: React.FC = () => {
     };
 
     const fetchMeetings = useCallback(async (silent = false) => {
-        const token = localStorage.getItem('memoapp_access_token');
+        const token = localStorage.getItem('ownnote_access_token');
         if (!token) {
             console.log('🚫 No access token found, skipping meetings fetch');
             return;
@@ -619,7 +624,7 @@ const MeetingsList: React.FC = () => {
                             <div className="mt-16 text-center pb-20">
                                 <div className="inline-block p-1 rounded-2xl bg-blue-50 border border-blue-100">
                                     <Button
-                                        onClick={() => window.open('https://makememo.ai/', '_blank')}
+                                        onClick={() => window.open('https://ownnote.ai/', '_blank')}
                                         className="bg-[#1B2BB8] hover:bg-blue-800 text-white font-bold rounded-xl px-8 h-12 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                                     >
                                         Start Your First Recording

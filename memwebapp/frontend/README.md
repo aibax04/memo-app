@@ -1,4 +1,4 @@
-# Memo App Dashboard
+# OWNnote Dashboard
 
 A modern, customizable dashboard platform for visualizing customer conversations and analytics using AI.
 

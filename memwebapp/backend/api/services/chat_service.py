@@ -64,12 +64,12 @@ class ChatService:
             return f"Error: {str(e)}"
 
     def _get_system_prompt(self, meeting_context: Optional[str], is_about_app: bool) -> str:
-        prompt = "You are MemoBot, a helpful assistant for the Memo App.\n"
+        prompt = "You are OWNnote Bot, a helpful assistant for OWNnote.\n"
         
         if is_about_app:
             prompt += """
-About Memo App:
-- Memo App transforms your conversation audio into structured, actionable intelligence.
+About OWNnote:
+- OWNnote transforms your conversation audio into structured, actionable intelligence.
 - It is perfect for sales teams, researchers, and project managers.
 - Workflow: 
   1. Record: Capture any conversation using browser interface or mobile app.

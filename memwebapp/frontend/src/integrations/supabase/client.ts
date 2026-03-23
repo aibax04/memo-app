@@ -40,7 +40,7 @@ export const saveDashboard = async (dashboard: {
   try {
     console.log('🔄 saveDashboard called with:', dashboard);
     
-    // Try using the Memo App API first
+    // Try using the OWNnote API first
     try {
       const apiResult = await api.createDashboard(dashboard.name, dashboard.description);
       if (!apiResult.error) {
@@ -81,7 +81,7 @@ export const fetchDashboards = async (userId?: string) => {
   try {
     console.log('🔄 fetchDashboards called');
     
-    // Try using the Memo App API first
+    // Try using the OWNnote API first
     try {
       const apiResult = await api.getDashboards();
       if (!apiResult.error) {
@@ -144,7 +144,7 @@ export const deleteDashboardFromDB = async (dashboardId: string, userId?: string
   try {
     console.log('🔄 deleteDashboardFromDB called:', { dashboardId, userId });
     
-    // Try using the Memo App API first
+    // Try using the OWNnote API first
     try {
       const apiResult = await api.deleteDashboard(dashboardId);
       if (!apiResult.error) {
@@ -193,7 +193,7 @@ export const saveChart = async (chart: {
   try {
     console.log('🔄 saveChart called:', { chartId: chart.id, dashboard: chart.dashboardId, type: chart.type });
     
-    // Try using the Memo App API first
+    // Try using the OWNnote API first
     try {
       // For new charts, use createChart. For existing, use updateChart
       const apiChart = {
@@ -253,7 +253,7 @@ export const fetchChartsForDashboard = async (dashboardId: string) => {
   try {
     console.log('🔄 fetchChartsForDashboard called:', { dashboardId });
     
-    // Try using the Memo App API first
+    // Try using the OWNnote API first
     try {
       const apiResult = await api.getDashboardCharts(dashboardId);
       if (!apiResult.error) {
@@ -318,7 +318,7 @@ export const deleteChartFromDB = async (chartId: string) => {
   try {
     console.log('🔄 deleteChartFromDB called:', { chartId });
     
-    // Try using the Memo App API first
+    // Try using the OWNnote API first
     try {
       const apiResult = await api.deleteChart(chartId);
       if (!apiResult.error) {

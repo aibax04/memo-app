@@ -1,20 +1,20 @@
-# Memo App - AI-Powered Meeting Recorder
+# OWNnote - AI-Powered Meeting Recorder
 
-**Memo App** meeting recorder is a Chrome extension that provides intelligent dual-stream audio recording for Google Meet and Microsoft Teams meetings. It captures both your microphone and meeting audio separately, with automatic mute detection, and seamlessly uploads recordings to your Memo App backend.
+**OWNnote** meeting recorder is a Chrome extension that provides intelligent dual-stream audio recording for Google Meet and Microsoft Teams meetings. It captures both your microphone and meeting audio separately, with automatic mute detection, and seamlessly uploads recordings to your OWNnote backend.
 
-![Memo App](https://img.shields.io/badge/Version-2.1.4-blue) ![Chrome](https://img.shields.io/badge/Chrome-88%2B-green) ![Manifest](https://img.shields.io/badge/Manifest-V3-orange)
+![OWNnote](https://img.shields.io/badge/Version-2.1.4-blue) ![Chrome](https://img.shields.io/badge/Chrome-88%2B-green) ![Manifest](https://img.shields.io/badge/Manifest-V3-orange)
 
 ---
 
 ## 🎯 Overview
 
-Memo App transforms your meeting experience by automatically recording, processing, and organizing your meetings. With intelligent mute detection, dual-stream audio capture, and seamless cloud integration, it's your AI memory for meeting recordings.
+OWNnote transforms your meeting experience by automatically recording, processing, and organizing your meetings. With intelligent mute detection, dual-stream audio capture, and seamless cloud integration, it's your AI memory for meeting recordings.
 
 ### Key Highlights
 
 - **🎤 Dual-Stream Recording**: Captures microphone and tab audio separately for maximum control
 - **🔇 Smart Mute Detection**: Automatically detects when you mute/unmute in Google Meet or Teams
-- **☁️ Cloud Integration**: Automatic upload to Memo App backend with AI processing
+- **☁️ Cloud Integration**: Automatic upload to OWNnote backend with AI processing
 - **📝 Template Support**: Use custom templates or predefined ones for meeting notes
 - **🚀 Bandwidth Optimized**: Intelligent compression and chunked uploads for large files
 - **🔐 Secure Authentication**: Seamless login integration with token refresh
@@ -74,7 +74,7 @@ Files are automatically saved to your Downloads folder with timestamps.
 
 ### ☁️ Cloud Upload & Processing
 
-- **Automatic Upload**: Recordings automatically uploaded to Memo App backend
+- **Automatic Upload**: Recordings automatically uploaded to OWNnote backend
 - **Progress Tracking**: Real-time upload progress with visual indicators
 - **Chunked Uploads**: Large files uploaded in chunks for reliability
 - **Bandwidth Optimization**: Intelligent compression before upload
@@ -143,7 +143,7 @@ Files are automatically saved to your Downloads folder with timestamps.
    - Join or start a meeting
 
 2. **Open Extension**
-   - Click the Memo App icon in your Chrome toolbar
+   - Click the OWNnote icon in your Chrome toolbar
    - The popup will show "Ready to Record" state
 
 3. **Configure Meeting Details** (Optional)
@@ -169,7 +169,7 @@ Files are automatically saved to your Downloads folder with timestamps.
 
 1. **Files Saved**: Two audio files saved to Downloads folder
 2. **Upload Progress**: See upload progress in the popup
-3. **Cloud Processing**: Recording processed on Memo App backend
+3. **Cloud Processing**: Recording processed on OWNnote backend
 4. **Next Steps**: 
    - Click "Record Another Meeting" to start a new recording
    - Or close the popup and access recordings in your dashboard
@@ -319,7 +319,7 @@ User Action → Popup → Background → Content Script/Offscreen
 ### Auth Flow
 
 1. **Login**: User logs in at `http://localhost:5173`
-2. **Token Storage**: Auth data stored in `localStorage` as `memoapp_auth_data`
+2. **Token Storage**: Auth data stored in `localStorage` as `ownnote_auth_data`
 3. **Extension Sync**: Content script monitors and syncs to extension storage
 4. **Token Validation**: Extension validates token expiry
 5. **Auto Refresh**: Automatic token refresh when expired
@@ -387,7 +387,7 @@ FormData {
 
 - Node.js (for development tools)
 - Chrome browser with Developer mode enabled
-- Access to Memo App API (for testing uploads)
+- Access to OWNnote API (for testing uploads)
 
 ### Development Setup
 

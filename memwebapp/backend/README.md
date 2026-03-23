@@ -1,4 +1,4 @@
-# Memo App Backend
+# OWNnote Backend
 
 A comprehensive enterprise-grade backend API for audio transcription, meeting management, and speaker analytics. This production-ready application powers mobile apps with AI-driven audio processing using Google Gemini AI, multi-provider authentication, cloud storage integration, and advanced CRM features.
 
@@ -855,7 +855,7 @@ Future<Map<String, dynamic>> getMeetings({
 import requests
 import json
 
-class MemoAppClient:
+class OwnnoteClient:
     def __init__(self, base_url, access_token):
         self.base_url = base_url
         self.headers = {'Authorization': f'Bearer {access_token}'}
@@ -922,7 +922,7 @@ data = {
         return response.json()
 
 # Usage
-client = MemoAppClient('http://localhost:8000', 'your-access-token')
+client = OwnnoteClient('http://localhost:8000', 'your-access-token')
 
 # Create meeting
 meeting = client.create_meeting(

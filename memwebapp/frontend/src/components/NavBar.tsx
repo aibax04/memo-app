@@ -29,7 +29,7 @@ const NavBar: React.FC = () => {
           <Link to="/" className="flex items-center gap-3">
             <img
               src="/lovable-uploads/image.png"
-              alt="Memo App Logo"
+              alt="OWNnote Logo"
               className="h-14 w-auto object-contain"
             />
           </Link>

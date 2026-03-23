@@ -1,4 +1,4 @@
-// API service for Memo App (localhost backend)
+// API service for OWNnote (localhost backend)
 
 import { toast } from "sonner";
 
@@ -11,11 +11,11 @@ const API_TIMEOUT = 180000; // Extended to 60 seconds (from 30) to give more tim
 const TOKEN_EXPIRY_DAYS = 7; // Token will expire after 7 days
 
 // Store token in memory and localStorage
-let accessToken: string | null = localStorage.getItem('memoapp_access_token');
+let accessToken: string | null = localStorage.getItem('ownnote_access_token');
 
 // Check if token has expired
 const isTokenExpired = (): boolean => {
-  const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
+  const tokenTimestamp = localStorage.getItem('ownnote_token_timestamp');
   if (!tokenTimestamp) return true;
 
   const expiryTimeMs = parseInt(tokenTimestamp) + (TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
@@ -26,9 +26,9 @@ const isTokenExpired = (): boolean => {
 if (accessToken && isTokenExpired()) {
   console.log('🔒 Access token has expired, clearing token');
   accessToken = null;
-  localStorage.removeItem('memoapp_access_token');
-  localStorage.removeItem('memoapp_token_timestamp');
-  localStorage.removeItem('memoapp_auth_data');
+  localStorage.removeItem('ownnote_access_token');
+  localStorage.removeItem('ownnote_token_timestamp');
+  localStorage.removeItem('ownnote_auth_data');
 }
 
 interface ApiOptions {
@@ -56,13 +56,13 @@ export const callApi = async (
   if (useAuth && accessToken && isTokenExpired()) {
     console.log('🔒 Token expired before API call, clearing token');
     accessToken = null;
-    localStorage.removeItem('memoapp_access_token');
-    localStorage.removeItem('memoapp_token_timestamp');
-    localStorage.removeItem('memoapp_auth_data');
+    localStorage.removeItem('ownnote_access_token');
+    localStorage.removeItem('ownnote_token_timestamp');
+    localStorage.removeItem('ownnote_auth_data');
     localStorage.removeItem('dashboardUser');
-    localStorage.removeItem('memo_pro');
+    localStorage.removeItem('ownnote_pro');
     toast.error("Your session has expired. Please log in again.");
-    try { window.dispatchEvent(new Event('memo_pro_updated')); } catch (_) {}
+    try { window.dispatchEvent(new Event('ownnote_pro_updated')); } catch (_) {}
     setTimeout(() => { window.location.replace('/login'); }, 100);
     return { error: "Authentication token expired" };
   }
@@ -120,15 +120,15 @@ export const callApi = async (
     // 401: invalid/expired token — clear session. 403: permission/plan (e.g. Pro-only) — return error, do not log out.
     if (response.status === 401) {
       console.error(`Authentication failed (${response.status}). Token may be expired or invalid.`);
-      localStorage.removeItem('memoapp_access_token');
-      localStorage.removeItem('memoapp_token_timestamp');
-      localStorage.removeItem('memoapp_auth_data');
+      localStorage.removeItem('ownnote_access_token');
+      localStorage.removeItem('ownnote_token_timestamp');
+      localStorage.removeItem('ownnote_auth_data');
       localStorage.removeItem('dashboardUser');
-      localStorage.removeItem('memo_pro');
+      localStorage.removeItem('ownnote_pro');
       accessToken = null;
       toast.error("Session expired. Please log in again.");
       // Use soft redirect so React can unmount cleanly (avoids white-screen crash)
-      try { window.dispatchEvent(new Event('memo_pro_updated')); } catch (_) {}
+      try { window.dispatchEvent(new Event('ownnote_pro_updated')); } catch (_) {}
       setTimeout(() => { window.location.replace('/login'); }, 100);
       return { error: "Authentication failed" };
     }
@@ -215,15 +215,15 @@ export const loginUser = async (username: string, password: string): Promise<any
   if (result.access_token) {
     // Save token to memory and localStorage
     accessToken = result.access_token;
-    localStorage.setItem('memoapp_access_token', result.access_token);
+    localStorage.setItem('ownnote_access_token', result.access_token);
     // Store the timestamp when the token was obtained
-    localStorage.setItem('memoapp_token_timestamp', Date.now().toString());
-    // Sync to Chrome extension: extension reads memoapp_auth_data from this page
+    localStorage.setItem('ownnote_token_timestamp', Date.now().toString());
+    // Sync to Chrome extension: extension reads ownnote_auth_data from this page
     const authData = {
       token: result.access_token,
       refreshToken: result.refresh_token || '',
     };
-    localStorage.setItem('memoapp_auth_data', JSON.stringify(authData));
+    localStorage.setItem('ownnote_auth_data', JSON.stringify(authData));
 
     console.log('🔑 User authenticated successfully with token:',
       result.access_token.substring(0, 10) + '...',
@@ -232,8 +232,8 @@ export const loginUser = async (username: string, password: string): Promise<any
 
     // Save pro status from server
     if (result.is_pro !== undefined) {
-      localStorage.setItem('memo_pro', result.is_pro ? 'true' : 'false');
-      window.dispatchEvent(new Event('memo_pro_updated'));
+      localStorage.setItem('ownnote_pro', result.is_pro ? 'true' : 'false');
+      window.dispatchEvent(new Event('ownnote_pro_updated'));
     }
 
     return result;
@@ -280,8 +280,8 @@ export const activatePro = async (promoCode: string): Promise<any> => {
   try {
     const result = await callApi('/api/v1/web/activate-pro', 'POST', { promo_code: promoCode });
     if (result && result.status === 'ok' && !result.error) {
-      localStorage.setItem('memo_pro', 'true');
-      window.dispatchEvent(new Event('memo_pro_updated'));
+      localStorage.setItem('ownnote_pro', 'true');
+      window.dispatchEvent(new Event('ownnote_pro_updated'));
       return { success: true, ...result };
     }
     const errMsg = typeof result?.error === 'string' ? result.error : 'Failed to activate Pro';
@@ -295,8 +295,8 @@ export const revokePro = async (): Promise<any> => {
   try {
     const result = await callApi('/api/v1/web/revoke-pro', 'POST');
     if (result && result.status === 'ok' && !result.error) {
-      localStorage.setItem('memo_pro', 'false');
-      window.dispatchEvent(new Event('memo_pro_updated'));
+      localStorage.setItem('ownnote_pro', 'false');
+      window.dispatchEvent(new Event('ownnote_pro_updated'));
       return { success: true, ...result };
     }
     const errMsg = typeof result?.error === 'string' ? result.error : 'Failed to revoke Pro';
@@ -585,10 +585,10 @@ export const isApiAvailable = async (): Promise<boolean> => {
 // Clear token on logout
 export const logout = (): void => {
   accessToken = null;
-  localStorage.removeItem('memoapp_access_token');
-  localStorage.removeItem('memoapp_token_timestamp');
-  localStorage.removeItem('memoapp_auth_data');
-  localStorage.removeItem('memo_pro');
-  window.dispatchEvent(new Event('memo_pro_updated'));
+  localStorage.removeItem('ownnote_access_token');
+  localStorage.removeItem('ownnote_token_timestamp');
+  localStorage.removeItem('ownnote_auth_data');
+  localStorage.removeItem('ownnote_pro');
+  window.dispatchEvent(new Event('ownnote_pro_updated'));
   console.log('🔒 User logged out');
 };

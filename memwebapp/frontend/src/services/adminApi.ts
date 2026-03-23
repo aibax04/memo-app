@@ -1,4 +1,4 @@
-// Admin API service for Memo App admin dashboard
+// Admin API service for OWNnote admin dashboard
 import { toast } from "sonner";
 
 const API_BASE_URL =
@@ -9,15 +9,15 @@ const API_BASE_URL =
 const ADMIN_PREFIX = "/api/v1/admin";
 
 const getAdminKey = (): string | null => {
-    return sessionStorage.getItem("memo_admin_key");
+    return sessionStorage.getItem("ownnote_admin_key");
 };
 
 export const setAdminKey = (key: string) => {
-    sessionStorage.setItem("memo_admin_key", key);
+    sessionStorage.setItem("ownnote_admin_key", key);
 };
 
 export const clearAdminKey = () => {
-    sessionStorage.removeItem("memo_admin_key");
+    sessionStorage.removeItem("ownnote_admin_key");
 };
 
 export const isAdminAuthenticated = (): boolean => {

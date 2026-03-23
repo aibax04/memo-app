@@ -51,7 +51,7 @@ const Register: React.FC = () => {
                 } catch {
                     /* AuthContext may still resolve from dashboardUser */
                 }
-                toast.success("Account created — welcome to Memo!");
+                toast.success("Account created — welcome to OWNnote!");
                 navigate("/dashboard");
             } else {
                 toast.success("Account created. Please sign in.");

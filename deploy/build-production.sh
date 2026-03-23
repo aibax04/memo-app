@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build Memo App for production deploy.
+# Build OWNnote for production deploy.
 # Run from repo root. Frontend is built with same-origin API (VITE_API_URL=).
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-echo "Building Memo App for production..."
+echo "Building OWNnote for production..."
 
 # Frontend: build with same-origin API (nginx will proxy /api and /token)
 cd memwebapp/frontend

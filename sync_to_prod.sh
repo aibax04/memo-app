@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🚀 Syncing local changes to ext.makememo.ai (Acknowledge)..."
+echo "🚀 Syncing local changes to ext.ownnote.ai (Acknowledge)..."
 
 # 1. Sync files (excluding environment files and heavy folders)
 rsync -avz --exclude '.git' \
@@ -32,7 +32,7 @@ ssh Acknowledge << 'REMOTE'
   # Frontend build
   cd ../frontend
   npm install --silent
-  VITE_API_URL=https://ext.makememo.ai VITE_PROMO_CODE=MEMOUSER7860 npm run build
+  VITE_API_URL=https://ext.ownnote.ai VITE_PROMO_CODE=OWNNOTEUSER7860 npm run build
   
   # Seed templates
   cd ../backend
@@ -47,4 +47,4 @@ ssh Acknowledge << 'REMOTE'
   sudo systemctl reload nginx
 REMOTE
 
-echo "✅ Deployment complete! Check https://ext.makememo.ai"
+echo "✅ Deployment complete! Check https://ext.ownnote.ai"

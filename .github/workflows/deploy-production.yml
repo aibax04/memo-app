@@ -1,4 +1,4 @@
-# Deploy Memo App to AWS EC2
+# Deploy OWNnote to AWS EC2
 # Runs on push to main. Uses the host and key you set in GitHub Secrets.
 #
 # Required GitHub Secrets:
@@ -10,7 +10,7 @@
 #
 # One-time on EC2: run deploy/bootstrap-ec2.sh as documented in deploy/EC2-SETUP.md
 
-name: Deploy Memo App to AWS EC2
+name: Deploy OWNnote to AWS EC2
 
 on:
   push:

@@ -34,7 +34,7 @@ const MOCK_USERS = [
 
 // Check if token has expired (7 days)
 const isTokenExpired = (): boolean => {
-  const tokenTimestamp = localStorage.getItem('memoapp_token_timestamp');
+  const tokenTimestamp = localStorage.getItem('ownnote_token_timestamp');
   if (!tokenTimestamp) return true;
 
   const expiryTimeMs = parseInt(tokenTimestamp) + (7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
@@ -43,24 +43,24 @@ const isTokenExpired = (): boolean => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isPro, setIsPro] = useState<boolean>(localStorage.getItem("memo_pro") === "true");
+  const [isPro, setIsPro] = useState<boolean>(localStorage.getItem("ownnote_pro") === "true");
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // Check for stored user and token expiration on initial load
   useEffect(() => {
     const storedUser = localStorage.getItem("dashboardUser");
-    const accessToken = localStorage.getItem("memoapp_access_token");
+    const accessToken = localStorage.getItem("ownnote_access_token");
 
     // If there's a stored user but no access token, or the token has expired,
     // clear stale data and redirect to login (prevents 403 on production)
     if (storedUser && (!accessToken || isTokenExpired())) {
       console.log("🔒 Stored user found but access token is missing or expired — clearing session");
-      localStorage.removeItem("memoapp_access_token");
-      localStorage.removeItem("memoapp_token_timestamp");
-      localStorage.removeItem("memoapp_auth_data");
+      localStorage.removeItem("ownnote_access_token");
+      localStorage.removeItem("ownnote_token_timestamp");
+      localStorage.removeItem("ownnote_auth_data");
       localStorage.removeItem("dashboardUser");
-      localStorage.removeItem("memo_pro");
+      localStorage.removeItem("ownnote_pro");
       setUser(null);
       setIsPro(false);
       setIsLoading(false);
@@ -80,16 +80,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Handle Pro status sync with server
   const checkProStatus = async () => {
-    if (!localStorage.getItem("memoapp_access_token")) return;
+    if (!localStorage.getItem("ownnote_access_token")) return;
     try {
       const res = await getProStatus();
       if (res && res.is_pro !== undefined) {
-        const current = localStorage.getItem("memo_pro") === "true";
+        const current = localStorage.getItem("ownnote_pro") === "true";
         if (res.is_pro !== current) {
           console.log(`✨ Pro status sync: ${current} -> ${res.is_pro}`);
-          localStorage.setItem("memo_pro", res.is_pro ? "true" : "false");
+          localStorage.setItem("ownnote_pro", res.is_pro ? "true" : "false");
           setIsPro(res.is_pro);
-          window.dispatchEvent(new Event("memo_pro_updated"));
+          window.dispatchEvent(new Event("ownnote_pro_updated"));
         }
       }
     } catch (e) {
@@ -108,12 +108,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Listen for local pro updates
   useEffect(() => {
     const handleUpdate = () => {
-      setIsPro(localStorage.getItem("memo_pro") === "true");
+      setIsPro(localStorage.getItem("ownnote_pro") === "true");
     };
-    window.addEventListener("memo_pro_updated", handleUpdate);
+    window.addEventListener("ownnote_pro_updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
-      window.removeEventListener("memo_pro_updated", handleUpdate);
+      window.removeEventListener("ownnote_pro_updated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -126,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const parsedUser = JSON.parse(storedUser);
       if (parsedUser.email === email) {
         setUser(parsedUser);
-        setIsPro(localStorage.getItem("memo_pro") === "true");
+        setIsPro(localStorage.getItem("ownnote_pro") === "true");
         setIsLoading(false);
         return;
       }
@@ -142,16 +142,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { password, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
       localStorage.setItem("dashboardUser", JSON.stringify(userWithoutPassword));
-      setIsPro(localStorage.getItem("memo_pro") === "true");
+      setIsPro(localStorage.getItem("ownnote_pro") === "true");
 
       const authData = {
         token: 'mock_token_' + foundUser.id,
         user: userWithoutPassword
       };
-      localStorage.setItem('memoapp_auth_data', JSON.stringify(authData));
+      localStorage.setItem('ownnote_auth_data', JSON.stringify(authData));
 
-      if (!localStorage.getItem('memoapp_token_timestamp')) {
-        localStorage.setItem('memoapp_token_timestamp', Date.now().toString());
+      if (!localStorage.getItem('ownnote_token_timestamp')) {
+        localStorage.setItem('ownnote_token_timestamp', Date.now().toString());
       }
     } else {
       throw new Error("Invalid email or password");
@@ -164,11 +164,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsPro(false);
     localStorage.removeItem("dashboardUser");
-    localStorage.removeItem("memoapp_access_token");
-    localStorage.removeItem("memoapp_token_timestamp");
-    localStorage.removeItem("memoapp_auth_data");
-    localStorage.removeItem("memo_pro");
-    window.dispatchEvent(new Event("memo_pro_updated"));
+    localStorage.removeItem("ownnote_access_token");
+    localStorage.removeItem("ownnote_token_timestamp");
+    localStorage.removeItem("ownnote_auth_data");
+    localStorage.removeItem("ownnote_pro");
+    window.dispatchEvent(new Event("ownnote_pro_updated"));
   };
 
   return (

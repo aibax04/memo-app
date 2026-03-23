@@ -163,7 +163,7 @@ const QueryAnalyzer: React.FC<QueryAnalyzerProps> = ({ isOpen, onClose }) => {
             </Button>
           </div>
           <DialogDescription>
-            Enter a query to analyze if it requires Memo App Dynamic Dashboards or Memo App Agentic Query
+            Enter a query to analyze if it requires OWNnote Dynamic Dashboards or OWNnote Agentic Query
           </DialogDescription>
         </DialogHeader>
         
@@ -184,8 +184,8 @@ const QueryAnalyzer: React.FC<QueryAnalyzerProps> = ({ isOpen, onClose }) => {
               <p className="font-medium text-lg">{result}</p>
               <p className="text-sm mt-1 opacity-80">
                 {result === "Dynamic Dashboard" 
-                  ? "This query can be answered using Memo App's Dynamic Dashboards." 
-                  : "This query would require Memo App's Agentic Query AI for an advanced analysis."}
+                  ? "This query can be answered using OWNnote's Dynamic Dashboards."
+                  : "This query would require OWNnote's Agentic Query AI for an advanced analysis."}
               </p>
             </div>
           )}

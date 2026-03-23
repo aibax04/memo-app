@@ -360,7 +360,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         throw error;
       }
 
-      // For Memo App fallback
+      // For OWNnote fallback
       return processWordOccurrences(filters);
     }
   };
@@ -428,7 +428,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   };
 
-  const processPromptWithFilters = async (prompt: string, chartType: ChartType, filters: Record<string, string> = {}, dataSource: DataSource = 'memoapp'): Promise<{ data: Record<string, any>; type: ChartType; requiresAdvancedAnalysis?: boolean; analysisExplanation?: string; geminiDirectResponse?: string } | null> => {
+  const processPromptWithFilters = async (prompt: string, chartType: ChartType, filters: Record<string, string> = {}, dataSource: DataSource = 'ownnote'): Promise<{ data: Record<string, any>; type: ChartType; requiresAdvancedAnalysis?: boolean; analysisExplanation?: string; geminiDirectResponse?: string } | null> => {
     try {
       console.log("🚀 Processing prompt with filters:", prompt, filters);
     
@@ -511,7 +511,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const processPrompt = async (prompt: string, forcedType?: ChartType, dataSource: DataSource = 'memoapp'): Promise<{ data: Record<string, any>; type: ChartType; requiresAdvancedAnalysis?: boolean; analysisExplanation?: string; geminiDirectResponse?: string } | null> => {
+  const processPrompt = async (prompt: string, forcedType?: ChartType, dataSource: DataSource = 'ownnote'): Promise<{ data: Record<string, any>; type: ChartType; requiresAdvancedAnalysis?: boolean; analysisExplanation?: string; geminiDirectResponse?: string } | null> => {
     try {    
       // Process the prompt with AI to get chart data and other analysis
       const result = await processPromptWithFilters(prompt, forcedType as ChartType, {}, dataSource);
@@ -627,7 +627,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     name: string, 
     prompt: string, 
     forcedType?: string,
-    dataSource: DataSource = 'memoapp'
+    dataSource: DataSource = 'ownnote'
   ): Promise<boolean> => {
     try {
       
@@ -711,7 +711,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     name: string, 
     prompt: string, 
     forcedType?: string,
-    dataSource: DataSource = 'memoapp'
+    dataSource: DataSource = 'ownnote'
   ): Promise<boolean> => {
     try {      
       const processedData = await processPrompt(prompt, forcedType as ChartType, dataSource);

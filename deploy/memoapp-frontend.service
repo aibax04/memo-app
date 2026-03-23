@@ -1,11 +1,11 @@
-# Memo App Frontend - systemd service (Vite preview on port 5173)
+# OWNnote Frontend - systemd service (Vite preview on port 5173)
 # Install: sudo cp deploy/memoapp-frontend.service /etc/systemd/system/
 #         sudo systemctl daemon-reload
 #         sudo systemctl enable memoapp-frontend
 #         sudo systemctl start memoapp-frontend
 
 [Unit]
-Description=Memo App Frontend (port 5173)
+Description=OWNnote Frontend (port 5173)
 After=network.target
 
 [Service]

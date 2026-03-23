@@ -1,6 +1,6 @@
-# Memo App
+# OWNnote
 
-Local development setup for Memo App (backend, frontend, and meeting recorder). Everything runs on **localhost** by default.
+Local development setup for OWNnote (backend, frontend, and meeting recorder). Everything runs on **localhost** by default.
 
 ## One-command local run
 
@@ -54,7 +54,7 @@ npm run dev
 
 ## Environment
 
-- **Backend**: See `backend/.env.backup`. Copy to `backend/.env` and set `APP_NAME=Memo App`, `FRONTEND_URL=http://localhost:5173`, and DB/OAuth as needed.
+- **Backend**: See `backend/.env.backup`. Copy to `backend/.env` and set `APP_NAME=OWNnote`, `FRONTEND_URL=http://localhost:5173`, and DB/OAuth as needed.
 - **Frontend**: Optional `frontend/.env`: `VITE_API_URL=http://localhost:8000` (default if unset).
 
 Production deployment (URLs, CORS, env) can be configured later.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy Memo App to EC2 and verify it works.
+# Deploy OWNnote to EC2 and verify it works.
 # Usage:
 #   ./deploy/deploy-and-verify.sh                    # show usage and steps
 #   ./deploy/deploy-and-verify.sh <EC2_IP_OR_HOST>   # verify only (curl checks)
@@ -68,7 +68,7 @@ verify() {
 }
 
 if [ -z "$HOST" ]; then
-  echo "Memo App – Deploy and verify"
+  echo "OWNnote – Deploy and verify"
   echo ""
   echo "Option A – Deploy via GitHub Actions (after push to main):"
   echo "  1. Add secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY, EC2_APP_PATH (see deploy/GITHUB-SECRETS-AND-HOST.md)"

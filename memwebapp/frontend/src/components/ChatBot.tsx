@@ -45,7 +45,7 @@ interface ChatBotProps {
     contextMeetingTitle?: string;
 }
 
-const defaultWelcome = 'Hi! I\'m MemoBot. I can answer questions about your meetings or explain how Memo App works. How can I help you today?';
+const defaultWelcome = 'Hi! I\'m OWNnote Bot. I can answer questions about your meetings or explain how OWNnote works. How can I help you today?';
 
 const ChatBot: React.FC<ChatBotProps> = ({
     meetings,
@@ -55,7 +55,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
 }) => {
     const isEmbedded = variant === 'embedded';
     const welcomeForContext = contextMeetingId
-        ? `Hi! I'm MemoBot. I'm focused on **${contextMeetingTitle || 'this meeting'}**. Ask me about the transcript, summary, action items, analytics, or anything from this session.`
+        ? `Hi! I'm OWNnote Bot. I'm focused on **${contextMeetingTitle || 'this meeting'}**. Ask me about the transcript, summary, action items, analytics, or anything from this session.`
         : defaultWelcome;
 
     const [isOpen, setIsOpen] = useState(isEmbedded);
@@ -87,7 +87,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
         return 'guest';
     };
 
-    const storageKey = `memo_bot_pro_${getUserId()}`;
+    const storageKey = `ownnote_bot_pro_${getUserId()}`;
 
     const [isPro, setIsPro] = useState(() => localStorage.getItem(storageKey) === 'true');
     const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
@@ -182,7 +182,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem('memoapp_access_token');
+            const token = localStorage.getItem('ownnote_access_token');
             const response = await fetch('/api/v1/chat', {
                 method: 'POST',
                 headers: {
@@ -197,7 +197,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                         : (selectedMeetingId === 'none' ? null : selectedMeetingId),
                     is_general_query: contextMeetingId
                         ? false
-                        : (msgText.toLowerCase().includes('how') || msgText.toLowerCase().includes('memo app'))
+                        : (msgText.toLowerCase().includes('how') || msgText.toLowerCase().includes('ownnote'))
                 })
             });
 
@@ -277,7 +277,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                         Draft follow-up email
                     </DialogTitle>
                     <DialogDescription className="text-xs text-left">
-                        Choose a tone. Memo uses AI (Gemini) with this meeting&apos;s summary, transcript, and analytics.
+                        Choose a tone. OWNnote uses AI (Gemini) with this meeting&apos;s summary, transcript, and analytics.
                         Use <strong>Copy</strong> or <strong>Open in Gmail</strong> (uses your browser&apos;s Google account — same app Client ID as Google sign-in).
                     </DialogDescription>
                 </DialogHeader>
@@ -396,7 +396,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                             <Bot className="h-5 w-5 shrink-0" />
                             <div className="min-w-0">
                                 <CardTitle className="text-sm font-bold truncate">
-                                    {isEmbedded ? 'Ask Memo Bot' : 'MemoBot'}
+                                    {isEmbedded ? 'Ask OWNnote Bot' : 'OWNnote Bot'}
                                     {isPro && <span className="ml-1 text-[10px] bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
                                 </CardTitle>
                                 {isEmbedded && contextMeetingTitle && (
@@ -422,7 +422,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                                 <BookOpen className="h-3 w-3" /> Connected to this meeting
                             </div>
                             <p className="text-xs font-bold text-slate-800 line-clamp-2">{contextMeetingTitle || 'Current session'}</p>
-                            <p className="text-[10px] text-slate-500 leading-relaxed">MemoBot uses this meeting&apos;s summary, transcript, and analytics for every reply.</p>
+                            <p className="text-[10px] text-slate-500 leading-relaxed">OWNnote Bot uses this meeting&apos;s summary, transcript, and analytics for every reply.</p>
                             <div className="flex flex-wrap gap-2 pt-1">
                                 <button
                                     type="button"
@@ -504,7 +504,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                                             <Zap className="h-5 w-5 text-amber-500" />
                                         </div>
                                         <div>
-                                            <h4 className="text-xs font-bold text-slate-800">Unlock MemoBot Pro</h4>
+                                            <h4 className="text-xs font-bold text-slate-800">Unlock OWNnote Bot Pro</h4>
                                             <p className="text-[10px] text-slate-500 mt-1 mb-2 leading-relaxed">
                                                 Connect your Google account to fetch calendar, Gmail, and Google Meet permissions.
                                             </p>

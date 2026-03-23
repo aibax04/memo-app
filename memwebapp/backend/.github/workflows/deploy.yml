@@ -1,4 +1,4 @@
-name: Deploy Memo App to EC2
+name: Deploy OWNnote to EC2
 
 on:
   push:

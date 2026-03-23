@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Memo App – run backend + frontend locally and connect Chrome extension
+# OWNnote – run backend + frontend locally and connect Chrome extension
 # Usage: ./run_local.sh   (from repo root)
 #
 # First run: creates .venv and installs requirements (progress shown).
@@ -47,7 +47,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 echo "=============================================="
-echo "  Memo App – Local stack (backend + frontend)"
+echo "  OWNnote – Local stack (backend + frontend)"
 echo "=============================================="
 echo ""
 

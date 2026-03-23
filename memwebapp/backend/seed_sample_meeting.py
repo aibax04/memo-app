@@ -34,7 +34,7 @@ def seed_sample():
                 {"speaker": "Jordan Smith", "start": 10, "end": 15, "text": "Great, let's start with the product milestones."}
             ],
             summary="The team aligned on the primary objectives for the first quarter, focusing on market expansion and internal tool optimization.",
-            key_points="• Market expansion into APAC region\n• Backend infrastructure upgrade following memo-app patterns\n• Customer success team scale-up",
+            key_points="• Market expansion into APAC region\n• Backend infrastructure upgrade following OWNnote patterns\n• Customer success team scale-up",
             action_items=[
                 {"description": "Finalize APAC budget", "owner": "Alex", "priority": "High"},
                 {"description": "Draft infrastructure tech spec", "owner": "Engineering", "priority": "Medium"}

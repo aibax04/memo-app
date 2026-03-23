@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run this ON the EC2 instance to fix and verify Memo App.
+# Run this ON the EC2 instance to fix and verify OWNnote.
 # From your laptop: ssh -i key.pem ubuntu@YOUR_EC2_IP 'bash -s' < deploy/check-on-ec2.sh
 # Or on EC2: cd /home/ubuntu/memoapp && bash deploy/check-on-ec2.sh
 
@@ -7,7 +7,7 @@ set -e
 APP_PATH="${APP_PATH:-/home/ubuntu/memoapp}"
 cd "$APP_PATH" 2>/dev/null || { echo "Run from repo root (e.g. /home/ubuntu/memoapp)"; exit 1; }
 
-echo "=== Memo App EC2 check ==="
+echo "=== OWNnote EC2 check ==="
 
 # 1) Backend .env must have PORT and FRONTEND_URL
 ENV_FILE="memwebapp/backend/.env"

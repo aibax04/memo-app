@@ -183,7 +183,7 @@ const AdminDashboard: React.FC = () => {
     );
 
     /* ═══════════════════════════════════════════ */
-    /*            LOGIN SCREEN (Memo theme)        */
+    /*            LOGIN SCREEN (OWNnote theme)        */
     /* ═══════════════════════════════════════════ */
     if (!authenticated) {
         return (
@@ -218,7 +218,7 @@ const AdminDashboard: React.FC = () => {
 
                     {/* Center content */}
                     <div className="relative z-20 flex flex-col items-center justify-center text-center px-16 animate-in fade-in zoom-in-95 duration-1000 h-full w-full">
-                        <img src="/lovable-uploads/image.png" alt="Memo App Logo" className="h-32 w-auto object-contain drop-shadow-2xl brightness-0 invert mb-4" />
+                        <img src="/lovable-uploads/image.png" alt="OWNnote Logo" className="h-32 w-auto object-contain drop-shadow-2xl brightness-0 invert mb-4" />
                         <div className="space-y-4 max-w-md">
                             <p className="text-3xl font-light text-blue-50 leading-snug drop-shadow-sm">
                                 Command center for<br />
@@ -249,7 +249,7 @@ const AdminDashboard: React.FC = () => {
 
                     <div className="w-full max-w-[420px] relative z-10 animate-in fade-in slide-in-from-right-8 duration-700">
                         <div className="lg:hidden flex flex-col items-center mb-10">
-                            <img src="/lovable-uploads/image.png" alt="Memo App Logo" className="h-20 w-auto object-contain" />
+                            <img src="/lovable-uploads/image.png" alt="OWNnote Logo" className="h-20 w-auto object-contain" />
                         </div>
 
                         <div className="bg-white/80 lg:bg-transparent backdrop-blur-3xl lg:backdrop-blur-none p-8 sm:p-10 lg:p-0 shadow-xl lg:shadow-none rounded-[2.5rem] lg:rounded-none border border-slate-200 lg:border-none">
@@ -297,7 +297,7 @@ const AdminDashboard: React.FC = () => {
 
                         <div className="mt-8 text-center">
                             <p className="text-slate-600 text-[11px] uppercase tracking-widest font-bold">
-                                &copy; {new Date().getFullYear()} Memo App · Admin
+                                &copy; {new Date().getFullYear()} OWNnote · Admin
                             </p>
                         </div>
                     </div>
@@ -307,7 +307,7 @@ const AdminDashboard: React.FC = () => {
     }
 
     /* ═══════════════════════════════════════════ */
-    /*          ADMIN DASHBOARD (Memo theme)       */
+    /*          ADMIN DASHBOARD (OWNnote theme)       */
     /* ═══════════════════════════════════════════ */
     return (
         <div className="min-h-screen bg-[#F3F3F3]">
@@ -315,7 +315,7 @@ const AdminDashboard: React.FC = () => {
             <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50">
                 <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <img src="/lovable-uploads/image.png" alt="Memo App" className="h-9 w-auto object-contain drop-shadow-sm" />
+                        <img src="/lovable-uploads/image.png" alt="OWNnote" className="h-9 w-auto object-contain drop-shadow-sm" />
                         <div className="h-6 w-px bg-slate-200" />
                         <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-[#1B2BB8] flex items-center justify-center">
@@ -573,7 +573,7 @@ const AdminDashboard: React.FC = () => {
 
                                                         <button
                                                             type="button"
-                                                            onClick={() => toast.info(`Starting Chat with MemoBot about ${user.name}`)}
+                                                            onClick={() => toast.info(`Starting Chat with OWNnote Bot about ${user.name}`)}
                                                             className="flex items-center gap-3 px-6 py-3 bg-[#1B2BB8] text-white rounded-2xl hover:bg-blue-800 transition-all shadow-[0_4px_14px_0_rgba(27,43,184,0.3)] hover:scale-105 active:scale-95 group min-w-[200px]"
                                                         >
                                                             <div className="p-2 bg-white/10 rounded-xl group-hover:bg-white/20 transition-colors">
@@ -581,7 +581,7 @@ const AdminDashboard: React.FC = () => {
                                                             </div>
                                                             <div className="text-left">
                                                                 <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none">AI Assistant</p>
-                                                                <p className="text-sm font-bold">Ask MemoBot</p>
+                                                                <p className="text-sm font-bold">Ask OWNnote Bot</p>
                                                             </div>
                                                         </button>
 
@@ -735,7 +735,7 @@ const AdminDashboard: React.FC = () => {
 };
 
 /* ═══════════════════════════════════════════ */
-/*          SUB-COMPONENTS (Memo style)        */
+/*          SUB-COMPONENTS (OWNnote style)        */
 /* ═══════════════════════════════════════════ */
 
 const accentStyles: Record<string, { card: string; icon: string; badge: string }> = {

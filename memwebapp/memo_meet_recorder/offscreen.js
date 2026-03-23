@@ -1,5 +1,5 @@
 /**
- * Memo App Meeting Recorder - Offscreen Document
+ * OWNnote Meeting Recorder - Offscreen Document
  * Handles tab audio capture via tabCapture API
  * 
  * IMPORTANT: Tab audio playback routing
@@ -279,4 +279,4 @@ function cleanup() {
 // INITIALIZATION
 // ============================================================================
 
-console.log('[Offscreen] Memo App offscreen document loaded');
+console.log('[Offscreen] OWNnote offscreen document loaded');

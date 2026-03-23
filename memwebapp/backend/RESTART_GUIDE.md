@@ -1,6 +1,6 @@
 # Backend Restart Guide
 
-This guide explains how to restart the Memo App backend server on your production instance.
+This guide explains how to restart the OWNnote backend server on your production instance.
 
 ## Quick Restart
 

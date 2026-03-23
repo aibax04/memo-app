@@ -1,7 +1,7 @@
-# Memo App - Nginx configuration for production
+# OWNnote - Nginx configuration for production
 # Frontend: proxied from port 5173 (or serve static build)
 # Backend API: proxied from port 8002
-# Default server so Memo (not cortex) is served at the host IP. Keep acknowledge + simplii enabled; disable rift_cortex.
+# Default server so OWNnote (not cortex) is served at the host IP. Keep acknowledge + simplii enabled; disable rift_cortex.
 
 upstream memoapp_frontend {
     server 127.0.0.1:5173;
@@ -16,7 +16,7 @@ upstream memoapp_backend {
 # HTTP server – default_server so this app handles requests to the host IP (e.g. 43.205.135.78)
 # If another app (e.g. squadmode-ai) was serving before, disable it: sudo rm /etc/nginx/sites-enabled/<other-site>
 server {
-    server_name ext.makememo.ai;
+    server_name ext.ownnote.ai;
 
     # For Let's Encrypt / certbot
     location /.well-known/acme-challenge/ {
@@ -131,7 +131,7 @@ server {
         proxy_set_header Host $host;
     }
 
-    # Frontend - Memo App at / (Vite dev or preview on 5173)
+    # Frontend - OWNnote at / (Vite dev or preview on 5173)
     location / {
         proxy_pass http://memoapp_frontend;
         proxy_http_version 1.1;
@@ -146,8 +146,8 @@ server {
 
     listen [::]:443 ssl ipv6only=on; # managed by Certbot
     listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/ext.makememo.ai/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/ext.makememo.ai/privkey.pem; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/ext.ownnote.ai/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/ext.ownnote.ai/privkey.pem; # managed by Certbot
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
@@ -166,14 +166,14 @@ server {
 # }
 
 server {
-    if ($host = ext.makememo.ai) {
+    if ($host = ext.ownnote.ai) {
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
 
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name ext.makememo.ai;
+    server_name ext.ownnote.ai;
     return 404; # managed by Certbot
 
 

@@ -1,5 +1,5 @@
 /**
- * Memo App Meeting Recorder - Content Script
+ * OWNnote Meeting Recorder - Content Script
  * Handles microphone recording, meeting platform detection, meeting title detection, and meeting end detection
  */
 
@@ -409,10 +409,10 @@ function startGoogleMeetEndDetection() {
   const meetingEndCheckInterval = setInterval(checkForMeetingEnd, 2000);
 
   // Store interval ID for cleanup
-  if (!window._memoappIntervals) {
-    window._memoappIntervals = [];
+  if (!window._ownnoteIntervals) {
+    window._ownnoteIntervals = [];
   }
-  window._memoappIntervals.push(meetingEndCheckInterval);
+  window._ownnoteIntervals.push(meetingEndCheckInterval);
 }
 
 function startTeamsEndDetection() {
@@ -897,9 +897,9 @@ function cleanup() {
   stopUrlMonitoring();
 
   // Clean up any stored intervals
-  if (window._memoappIntervals) {
-    window._memoappIntervals.forEach(id => clearInterval(id));
-    window._memoappIntervals = [];
+  if (window._ownnoteIntervals) {
+    window._ownnoteIntervals.forEach(id => clearInterval(id));
+    window._ownnoteIntervals = [];
   }
 }
 
@@ -1145,7 +1145,7 @@ function stopUrlMonitoring() {
 // INITIALIZATION
 // ============================================================================
 
-console.log('[Content] Memo App content script loaded on', detectPlatform() || 'unknown platform');
+console.log('[Content] OWNnote content script loaded on', detectPlatform() || 'unknown platform');
 
 // Detect title on load
 setTimeout(detectMeetingTitle, 2000);

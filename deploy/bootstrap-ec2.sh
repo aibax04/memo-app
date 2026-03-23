@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time bootstrap for Memo App on a fresh Ubuntu EC2 instance.
+# One-time bootstrap for OWNnote on a fresh Ubuntu EC2 instance.
 # Run on the EC2 host (e.g. after cloning the repo or copying deploy/ and memwebapp/).
 #
 # Usage:
@@ -12,7 +12,7 @@
 
 set -e
 APP_PATH="${APP_PATH:-/home/ubuntu/memoapp}"
-echo "Bootstrapping Memo App at $APP_PATH"
+echo "Bootstrapping OWNnote at $APP_PATH"
 
 # If we're inside the repo, detect path
 if [ -d "deploy" ] && [ -d "memwebapp" ]; then

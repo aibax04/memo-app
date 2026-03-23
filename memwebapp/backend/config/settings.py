@@ -35,7 +35,7 @@ class Settings:
     NGROK_ENABLED: bool = os.getenv("NGROK_ENABLED", "false").lower() == "true"
     
     # Application settings
-    APP_NAME: str = os.getenv("APP_NAME", "Memo App")
+    APP_NAME: str = os.getenv("APP_NAME", "OWNnote")
     APP_VERSION: str = "1.0.0"
     APP_DESCRIPTION: str = "API for managing meeting records with audio processing capabilities"
     # Company domains - can be a single domain or comma-separated list
@@ -69,13 +69,13 @@ class Settings:
 
     # Admin settings
     ADMIN_KEY: str = os.getenv("ADMIN_KEY", "")
-    PROMO_CODE: str = os.getenv("PROMO_CODE", "MEMOUSER7860")
+    PROMO_CODE: str = os.getenv("PROMO_CODE", "OWNNOTEUSER7860")
     
     # AWS S3 settings
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
     AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
-    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "memoapp-audio-files")
+    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "ownnote-audio-files")
     S3_AUDIO_PREFIX: str = os.getenv("S3_AUDIO_PREFIX", "meetings/audio/")
     
     # CORS settings - Dynamic based on environment and ngrok
@@ -88,11 +88,11 @@ class Settings:
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
             "http://127.0.0.1:8000",
-            "https://ext.makememo.ai",
-            "http://ext.makememo.ai",
+            "https://ext.ownnote.ai",
+            "http://ext.ownnote.ai",
             "http://192.168.88.15",
             "http://43.205.135.78",
-            "memoapp://auth/callback",
+            "ownnote://auth/callback",
         ]
         
         # Add ngrok URL if enabled

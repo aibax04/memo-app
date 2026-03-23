@@ -123,7 +123,7 @@ const Login: React.FC = () => {
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-600">
-        New to Memo?{" "}
+        New to OWNnote?{" "}
         <Link to="/register" className="font-bold text-[#1B2BB8] hover:text-blue-800 transition-colors">
           Create an account
         </Link>

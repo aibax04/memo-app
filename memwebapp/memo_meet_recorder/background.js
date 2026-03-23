@@ -1,5 +1,5 @@
 /**
- * Memo App Meeting Recorder - Background Service Worker
+ * OWNnote Meeting Recorder - Background Service Worker
  * Production-grade service worker for recording Google Meet and Teams meetings
  * Features: WebSocket streaming, auto-reconnect, token management, template caching
  */
@@ -45,7 +45,7 @@ const state = {
 
 const Storage = {
   PREF_PREFIX: 'pref_',
-  AUTH_KEY: 'memoapp_auth_data',
+  AUTH_KEY: 'ownnote_auth_data',
   STATE_KEY: 'recording_state',
 
   async savePreference(key, value) {
@@ -170,7 +170,7 @@ const Auth = {
       // Look for dashboard tabs
       const tabs = await chrome.tabs.query({
         url: [
-          "https://ext.makememo.ai/*",
+          "https://ext.ownnote.ai/*",
           "http://localhost:5173/*",
           "http://127.0.0.1:5173/*"
         ]
@@ -416,9 +416,9 @@ const Auth = {
   async getApiBaseUrl() {
     try {
       const stored = await chrome.storage.local.get(['api_base_url']);
-      return stored.api_base_url || 'https://ext.makememo.ai';
+      return stored.api_base_url || 'https://ext.ownnote.ai';
     } catch (error) {
-      return 'https://ext.makememo.ai';
+      return 'https://ext.ownnote.ai';
     }
   }
 };
@@ -1089,4 +1089,4 @@ Storage.loadState().then(restored => {
   }
 });
 
-console.log('[Background] Memo App Meeting Recorder loaded');
+console.log('[Background] OWNnote Meeting Recorder loaded');

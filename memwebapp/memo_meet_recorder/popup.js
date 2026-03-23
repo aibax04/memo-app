@@ -1,5 +1,5 @@
 /**
- * Memo App Meeting Recorder - Popup Script
+ * OWNnote Meeting Recorder - Popup Script
  * Clean, modular popup for controlling recording
  * Features: Template caching, pending upload handling
  */
@@ -10,8 +10,8 @@
 
 const CONFIG = {
   API: {
-    BASE_URL: 'https://ext.makememo.ai',
-    WEB_APP_URL: 'https://ext.makememo.ai',
+    BASE_URL: 'https://ext.ownnote.ai',
+    WEB_APP_URL: 'https://ext.ownnote.ai',
     ENDPOINTS: {
       TEMPLATES: '/api/v1/web/templates'
     }

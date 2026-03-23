@@ -62,7 +62,7 @@ def create_auth_redirect_response(request: Request, auth_result: dict, provider:
         logger.info(f"🔗 Redirecting to Web Frontend: {redirect_url}")
     else:   
         # Redirect to custom scheme for mobile
-        redirect_url = f"memoapp://auth/callback?data={encoded_data}"
+        redirect_url = f"ownnote://auth/callback?data={encoded_data}"
         logger.info(f"🔗 Redirecting to Custom Scheme: {redirect_url}")
     
     return RedirectResponse(url=redirect_url, status_code=302)

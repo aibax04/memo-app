@@ -57,7 +57,7 @@ yarn-error.log*
 *.dble
 
 # ========================================== #
-# Memo App Specific                          #
+# OWNnote Specific                          #
 # ========================================== #
 **/temp_audio/
 **/temp_error.txt

@@ -12,7 +12,7 @@ class GoogleConfig:
     CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
     
     # Redirect URI for OAuth2 flow - MUST be HTTP/HTTPS for Google Console
-    # The custom scheme (memoapp://) is handled by your backend after authentication
+    # The custom scheme (ownnote://) is handled by your backend after authentication
     REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
     
     # Company domain validation - will be set from settings

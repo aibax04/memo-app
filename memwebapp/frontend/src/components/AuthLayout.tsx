@@ -84,7 +84,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
           <Link to="/" className="flex flex-col items-center group mb-4">
             <img
               src="/lovable-uploads/image.png"
-              alt="Memo App Logo"
+              alt="OWNnote Logo"
               className="h-32 w-auto object-contain group-hover:scale-[1.03] transition-transform duration-700 drop-shadow-2xl brightness-0 invert"
             />
           </Link>
@@ -129,7 +129,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             <Link to="/" className="flex flex-col items-center group">
               <img
                 src="/lovable-uploads/image.png"
-                alt="Memo App Logo"
+                alt="OWNnote Logo"
                 className="h-20 w-auto object-contain group-hover:scale-105 transition-all"
               />
             </Link>
@@ -141,7 +141,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
           <div className="mt-8 text-center">
             <p className="text-slate-600 text-[11px] uppercase tracking-widest font-bold">
-              &copy; {new Date().getFullYear()} Memo App
+              &copy; {new Date().getFullYear()} OWNnote
             </p>
           </div>
         </div>

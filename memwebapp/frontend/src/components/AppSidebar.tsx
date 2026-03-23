@@ -106,7 +106,7 @@ export function AppSidebar() {
         <>
             <Sidebar className="border-r border-slate-200/60 bg-white/95 backdrop-blur-xl">
                 <SidebarHeader className="p-6 pt-8 flex items-center justify-center w-full">
-                    <img src="/lovable-uploads/image.png" alt="Memo App Logo" className="h-16 md:h-20 w-auto object-contain drop-shadow-sm" />
+                    <img src="/lovable-uploads/image.png" alt="OWNnote Logo" className="h-16 md:h-20 w-auto object-contain drop-shadow-sm" />
                 </SidebarHeader>
 
                 <SidebarContent className="px-3 py-4 flex flex-col gap-6">

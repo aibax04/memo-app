@@ -1,7 +1,7 @@
 #!/bin/bash
-# Restart script for Memo App Backend Server
+# Restart script for OWNnote Backend Server
 
-echo "🔄 Restarting Memo App Backend Server..."
+echo "🔄 Restarting OWNnote Backend Server..."
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

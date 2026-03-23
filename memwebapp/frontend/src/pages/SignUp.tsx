@@ -41,7 +41,7 @@ const SignUp: React.FC = () => {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Join Memo App</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Join OWNnote</h1>
         <p className="text-slate-600 mt-2">Start capturing your meetings smarter</p>
       </div>
 

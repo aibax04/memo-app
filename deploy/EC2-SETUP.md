@@ -1,4 +1,4 @@
-# Memo App – Production on EC2 with Nginx
+# OWNnote – Production on EC2 with Nginx
 
 Frontend is served on **port 5173** (or via nginx proxy). Backend runs on **port 8002**. Nginx listens on **80** (and optionally 443) and proxies to both.
 
@@ -151,4 +151,4 @@ Then uncomment the HTTPS `server { listen 443 ssl; ... }` block in `nginx-memoap
 - Frontend: `curl -I http://127.0.0.1:5173`
 - Via nginx: `curl http://<EC2-IP>/health` and `curl -I http://<EC2-IP>/`
 
-If these work, the Memo App is running in production with the frontend on 5173 and the backend on 8002 behind nginx.
+If these work, OWNnote is running in production with the frontend on 5173 and the backend on 8002 behind nginx.

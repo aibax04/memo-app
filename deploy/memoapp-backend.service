@@ -1,4 +1,4 @@
-# Memo App Backend - systemd service
+# OWNnote Backend - systemd service
 # Backend runs on port 8002 (set via environment)
 # Install: sudo cp deploy/memoapp-backend.service /etc/systemd/system/
 #         sudo systemctl daemon-reload
@@ -6,7 +6,7 @@
 #         sudo systemctl start memoapp-backend
 
 [Unit]
-Description=Memo App Backend API
+Description=OWNnote Backend API
 After=network.target
 
 [Service]

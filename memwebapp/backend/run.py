@@ -41,7 +41,7 @@ def main():
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 8000))
     
-    print("🚀 Starting Meeting Records CRUD API (Modular Structure)")
+    print("🚀 Starting OWNnote API (Meeting Records)")
     print("=" * 60)
     print(f"📡 Server: http://{host}:{port}")
     print(f"📚 API Docs: http://{host}:{port}/docs")

@@ -134,10 +134,13 @@ const Auth = {
       const result = await chrome.storage.local.get([Storage.AUTH_KEY]);
       let authData = result[Storage.AUTH_KEY];
 
-      // If missing, try to pro-actively pull from any open dashboard tab
-      if (!authData) {
-        console.log('[Background] Auth data missing, checking for open dashboard tabs...');
-        authData = await this.syncFromOpenTabs();
+      // Always reconcile with any open dashboard tab, not just when the cache
+      // is empty. Without this, a website logout (which clears localStorage
+      // via removeItem, not setItem) can leave the extension showing a stale
+      // "logged in" state until the next periodic content-script sync fires.
+      const sync = await this.syncFromOpenTabs();
+      if (sync.verified) {
+        authData = sync.authData;
       }
 
       // Handle legacy string format or corrupted data
@@ -165,12 +168,17 @@ const Auth = {
     }
   },
 
+  // Returns { verified, authData }. verified=true means a dashboard tab was
+  // actually reached and told us the current truth (logged in or logged out)
+  // -- authData is null in the logged-out case. verified=false means no
+  // matching tab could be reached, so the caller should fall back to cache.
   async syncFromOpenTabs() {
     try {
       // Look for dashboard tabs
       const tabs = await chrome.tabs.query({
         url: [
           "https://ext.ownnote.ai/*",
+          "https://ext.makememo.ai/*",
           "http://localhost:5173/*",
           "http://127.0.0.1:5173/*"
         ]
@@ -180,10 +188,16 @@ const Auth = {
         try {
           console.log(`[Background] Attempting sync from tab: ${tab.url}`);
           const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_WEB_AUTH_DATA' });
-          if (response?.success && response.authData?.token) {
-            console.log('[Background] Successfully pulled auth data from tab');
-            await this.setData(response.authData);
-            return response.authData;
+          if (response?.success) {
+            if (response.authData?.token) {
+              console.log('[Background] Successfully pulled auth data from tab');
+              await this.setData(response.authData);
+              return { verified: true, authData: response.authData };
+            } else {
+              console.log('[Background] Tab confirms user is logged out on the website');
+              await this.clearData();
+              return { verified: true, authData: null };
+            }
           }
         } catch (e) {
           // Tab might not have content script loaded yet
@@ -193,7 +207,7 @@ const Auth = {
     } catch (e) {
       console.error('[Background] Error syncing from tabs:', e);
     }
-    return null;
+    return { verified: false, authData: null };
   },
 
   async setData(data) {
@@ -416,9 +430,9 @@ const Auth = {
   async getApiBaseUrl() {
     try {
       const stored = await chrome.storage.local.get(['api_base_url']);
-      return stored.api_base_url || 'https://ext.ownnote.ai';
+      return stored.api_base_url || 'https://ext.makememo.ai';
     } catch (error) {
-      return 'https://ext.ownnote.ai';
+      return 'https://ext.makememo.ai';
     }
   }
 };
@@ -999,6 +1013,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         await Auth.clearData();
         return { success: true };
 
+      case 'SIGN_OUT_EVERYWHERE': {
+        // User clicked "Sign Out" inside the extension popup. Clearing only
+        // our own cache isn't enough -- the website tab is still logged in,
+        // so the next auth check would just pull that session back in. Clear
+        // the website's session too so both sides agree the user is out.
+        await Auth.clearData();
+        try {
+          const tabs = await chrome.tabs.query({
+            url: [
+              "https://ext.ownnote.ai/*",
+              "https://ext.makememo.ai/*",
+              "http://localhost:5173/*",
+              "http://127.0.0.1:5173/*"
+            ]
+          });
+          for (const tab of tabs) {
+            try {
+              await chrome.tabs.sendMessage(tab.id, { action: 'CLEAR_WEB_AUTH_DATA' });
+            } catch (e) {
+              console.log(`[Background] Could not clear web session on tab ${tab.id}: ${e.message}`);
+            }
+          }
+        } catch (e) {
+          console.error('[Background] Error clearing web sessions:', e);
+        }
+        return { success: true };
+      }
+
       case 'REFRESH_TOKEN_IF_NEEDED':
         try {
           const newToken = await Auth.refreshIfNeeded();
@@ -1081,6 +1123,39 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 chrome.runtime.onStartup.addListener(() => Storage.loadState());
 chrome.runtime.onInstalled.addListener(() => Storage.loadState());
+
+// Content scripts only auto-inject into *new* page loads after install/reload.
+// If the user was already logged into the dashboard in an existing tab before
+// installing the extension, that tab never gets localhost-content.js, so auth
+// sync silently fails and the popup shows "not logged in" even though the user
+// is signed in on the website. Fix: inject it into any matching tabs that are
+// already open at install time, so sync works immediately without a refresh.
+async function injectAuthSyncIntoOpenTabs() {
+  try {
+    const tabs = await chrome.tabs.query({
+      url: [
+        "https://ext.ownnote.ai/*",
+        "https://ext.makememo.ai/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*"
+      ]
+    });
+    for (const tab of tabs) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['localhost-content.js']
+        });
+        console.log(`[Background] Injected auth sync into already-open tab: ${tab.url}`);
+      } catch (e) {
+        console.warn(`[Background] Could not inject into tab ${tab.id}:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.warn('[Background] injectAuthSyncIntoOpenTabs failed:', e.message);
+  }
+}
+chrome.runtime.onInstalled.addListener(() => injectAuthSyncIntoOpenTabs());
 
 // Load state on startup
 Storage.loadState().then(restored => {

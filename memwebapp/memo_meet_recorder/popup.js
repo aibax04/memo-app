@@ -10,8 +10,8 @@
 
 const CONFIG = {
   API: {
-    BASE_URL: 'https://ext.ownnote.ai',
-    WEB_APP_URL: 'https://ext.ownnote.ai',
+    BASE_URL: 'https://ext.makememo.ai',
+    WEB_APP_URL: 'https://ext.makememo.ai',
     ENDPOINTS: {
       TEMPLATES: '/api/v1/web/templates'
     }
@@ -389,7 +389,7 @@ async function checkAuth() {
 
 async function logout() {
   try {
-    await chrome.runtime.sendMessage({ action: 'CLEAR_AUTH_DATA' });
+    await chrome.runtime.sendMessage({ action: 'SIGN_OUT_EVERYWHERE' });
     state.isAuthenticated = false;
     state.authData = null;
     showLogin();

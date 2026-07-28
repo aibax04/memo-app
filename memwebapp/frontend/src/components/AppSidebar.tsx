@@ -7,22 +7,24 @@ import {
 } from '@/components/ui/sidebar';
 import {
     Video, FileText, Chrome, CalendarPlus, Zap, CheckCircle2,
-    LogOut, ShieldCheck, Activity, Clock, Layers2,
+    LogOut, ShieldCheck, Activity, Clock, Layers2, Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { getMeetings, formatMeetingDate, formatDuration } from '@/services/meetingApi';
-import { getProStatus, activatePro, revokePro } from '@/services/api';
+import { getProStatus, activatePro, revokePro, API_BASE_URL } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import ProCelebration from '@/components/ProCelebration';
+import { useExtensionDialog } from '@/context/ExtensionDialogContext';
 
 export function AppSidebar() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, isPro, logout } = useAuth();
+    const { isOpen: isExtensionDialogOpen, setIsOpen: setExtensionDialogOpen } = useExtensionDialog();
 
     const [promoCode, setPromoCode] = useState('');
     const [showPromoDialog, setShowPromoDialog] = useState(false);
@@ -203,7 +205,7 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
 
                                 <SidebarMenuItem>
-                                    <Dialog>
+                                    <Dialog open={isExtensionDialogOpen} onOpenChange={setExtensionDialogOpen}>
                                         <DialogTrigger asChild>
                                             <SidebarMenuButton className="font-bold text-slate-600 h-10 rounded-xl hover:bg-slate-100 transition-all">
                                                 <Chrome className="w-5 h-5 mr-3 text-rose-500" />
@@ -220,6 +222,20 @@ export function AppSidebar() {
                                                     <div>
                                                         <div className="flex items-center gap-3 mb-3">
                                                             <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">1</div>
+                                                            <span className="font-bold text-slate-800">Download the extension</span>
+                                                        </div>
+                                                        <p className="text-slate-500 mb-4 ml-9">Download the extension files, then unzip the folder somewhere you'll remember.</p>
+                                                        <a
+                                                            href={`${API_BASE_URL}/static/memo_meet_recorder.zip`}
+                                                            download
+                                                            className="ml-9 inline-flex items-center gap-2 bg-[#1B2BB8] hover:bg-blue-800 text-white font-bold rounded-xl px-4 py-2 text-sm transition-all active:scale-95"
+                                                        >
+                                                            <Download className="w-4 h-4" /> Download Extension
+                                                        </a>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">2</div>
                                                             <span className="font-bold text-slate-800">Go to Manage Extensions</span>
                                                         </div>
                                                         <p className="text-slate-500 mb-4 ml-9">Click the puzzle icon in Chrome and select <strong>Manage Extensions</strong>, or manually navigate to <code className="bg-slate-100 px-2 py-1 rounded text-[#1B2BB8]">chrome://extensions</code></p>
@@ -229,7 +245,7 @@ export function AppSidebar() {
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-3 mb-3">
-                                                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">2</div>
+                                                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">3</div>
                                                             <span className="font-bold text-slate-800">Enable Developer Mode</span>
                                                         </div>
                                                         <p className="text-slate-500 mb-4 ml-9">Toggle <strong>Developer mode</strong> in the top right corner of the extensions page to allow local extensions.</p>
@@ -239,7 +255,7 @@ export function AppSidebar() {
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-3 mb-3">
-                                                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">3</div>
+                                                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">4</div>
                                                             <span className="font-bold text-slate-800">Load Unpacked</span>
                                                         </div>
                                                         <p className="text-slate-500 mb-4 ml-9">Click <strong>Load unpacked</strong> and select your extension folder to install and start using it!</p>

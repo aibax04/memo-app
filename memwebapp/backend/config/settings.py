@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 class Settings:
     # Database settings
@@ -134,11 +134,18 @@ class Settings:
     CORS_ALLOW_METHODS: list = ["*"]
     CORS_ALLOW_HEADERS: list = ["*"]
     
+    # Public URL used to build links (e.g. static file URLs) that must be reachable
+    # by end users' browsers. Distinct from HOST, which is only the bind address
+    # and may be 0.0.0.0 (not a valid public hostname).
+    PUBLIC_BACKEND_URL: str = os.getenv("PUBLIC_BACKEND_URL", "")
+
     # Get the current base URL for the application
     @property
     def BASE_URL(self) -> str:
         if self.NGROK_ENABLED and self.NGROK_URL:
             return self.NGROK_URL.rstrip('/')
+        elif self.PUBLIC_BACKEND_URL:
+            return self.PUBLIC_BACKEND_URL.rstrip('/')
         elif self.HTTPS_ENABLED:
             return f"https://{self.HOST}:{self.PORT}"
         else:

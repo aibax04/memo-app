@@ -32,7 +32,7 @@ class AudioProcessor:
         
         # Initialize Gemini client for transcription
         self.genai_client = None
-        self.MODEL_ID = "gemini-2.0-flash"
+        self.MODEL_ID = "gemini-flash-latest"
         
         # Retry configuration
         self.max_retries = int(os.getenv("AUDIO_MAX_RETRIES", "3"))

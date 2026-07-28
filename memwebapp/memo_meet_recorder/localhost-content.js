@@ -126,12 +126,30 @@ window.addEventListener('storage', function (event) {
   }
 });
 
-// Intercept localStorage.setItem
+// Intercept localStorage.setItem, removeItem, and clear so login AND logout
+// (logout uses removeItem/clear, not setItem) both sync immediately instead
+// of waiting for the next periodic check.
 (function () {
   const originalSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
     originalSetItem(key, value);
     if (key === 'ownnote_auth_data' && isContextValid) {
+      setTimeout(syncAuthToExtension, 100);
+    }
+  };
+
+  const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+  localStorage.removeItem = function (key) {
+    originalRemoveItem(key);
+    if (key === 'ownnote_auth_data' && isContextValid) {
+      setTimeout(syncAuthToExtension, 100);
+    }
+  };
+
+  const originalClear = localStorage.clear.bind(localStorage);
+  localStorage.clear = function () {
+    originalClear();
+    if (isContextValid) {
       setTimeout(syncAuthToExtension, 100);
     }
   };
@@ -151,6 +169,23 @@ if (checkExtensionContext()) {
           const authDataString = localStorage.getItem('ownnote_auth_data');
           const authData = authDataString ? JSON.parse(authDataString) : null;
           sendResponse({ success: true, authData });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
+      }
+
+      if (request.action === 'CLEAR_WEB_AUTH_DATA') {
+        try {
+          // Mirror what the website's own logout() does, then reload so the
+          // page picks up the cleared session immediately instead of showing
+          // stale "logged in" UI until the user manually refreshes.
+          localStorage.removeItem('dashboardUser');
+          localStorage.removeItem('ownnote_access_token');
+          localStorage.removeItem('ownnote_token_timestamp');
+          localStorage.removeItem('ownnote_auth_data');
+          localStorage.removeItem('ownnote_pro');
+          sendResponse({ success: true });
+          setTimeout(() => window.location.reload(), 50);
         } catch (error) {
           sendResponse({ success: false, error: error.message });
         }

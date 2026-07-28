@@ -47,8 +47,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Handle the OAuth callback redirect (Google/Microsoft): the backend sends
+  // the user back to "/?data=<json>" with tokens in the query string. Nothing
+  // previously consumed this, so it just showed the raw JSON in the URL
+  // instead of completing login. Same localStorage shape as loginUser() in
+  // services/api.ts, so the rest of the app treats it identically.
+  const consumeOAuthCallback = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    const data = params.get("data");
+    if (!data) return false;
+
+    try {
+      const result = JSON.parse(data);
+      if (!result.success || !result.access_token) return false;
+
+      localStorage.setItem("ownnote_access_token", result.access_token);
+      localStorage.setItem("ownnote_token_timestamp", Date.now().toString());
+      localStorage.setItem(
+        "ownnote_auth_data",
+        JSON.stringify({ token: result.access_token, refreshToken: result.refresh_token || "" })
+      );
+
+      const oauthUser = {
+        id: String(result.user?.id ?? result.user?.email ?? ""),
+        email: result.user?.email ?? "",
+        name: result.user?.name ?? (result.user?.email ?? "").split("@")[0],
+      };
+      localStorage.setItem("dashboardUser", JSON.stringify(oauthUser));
+
+      // ChatBot.tsx gates the Pro chatbot (calendar/Gmail-aware replies) on a
+      // per-user "ownnote_bot_pro_<id>" flag that nothing was ever setting --
+      // the Google connect button worked, but no code marked the connection
+      // as done, so the "Unlock Pro" prompt never went away. A successful
+      // callback with a google_access_token means the connection succeeded.
+      if (result.google_access_token) {
+        localStorage.setItem(`ownnote_bot_pro_${oauthUser.id}`, "true");
+      }
+
+      // Hard navigation (not React Router's navigate) is required here:
+      // services/api.ts caches the access token in a module-level variable
+      // that's only read from localStorage once, when the module first
+      // loads. A client-side route change would leave that variable stale
+      // (still empty from before login), so Pro status and every subsequent
+      // API call would silently fail auth until a real page load happened.
+      //
+      // The backend now sends the "data" redirect to the exact page the
+      // user started from (e.g. a specific meeting's chatbot, possibly with
+      // its own "?tab=..." to restore) instead of always the site root, so
+      // we're already on the right path -- just reload it, keeping any
+      // other query params (like "tab") but dropping the now-consumed
+      // "data" blob. Fall back to /dashboard only if there's nowhere
+      // specific to return to.
+      params.delete("data");
+      const remainingQuery = params.toString();
+      const target = window.location.pathname === "/"
+        ? "/dashboard"
+        : `${window.location.pathname}${remainingQuery ? `?${remainingQuery}` : ""}`;
+      window.location.replace(target);
+      return true;
+    } catch (e) {
+      console.error("Failed to process OAuth callback data:", e);
+      return false;
+    }
+  };
+
   // Check for stored user and token expiration on initial load
   useEffect(() => {
+    if (consumeOAuthCallback()) {
+      setIsLoading(false);
+      return;
+    }
+
     const storedUser = localStorage.getItem("dashboardUser");
     const accessToken = localStorage.getItem("ownnote_access_token");
 

@@ -8,6 +8,7 @@ import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
+import { ExtensionDialogProvider } from "@/context/ExtensionDialogContext";
 
 // Check if token has expired (7 days)
 const isTokenExpired = (): boolean => {
@@ -58,23 +59,25 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="flex flex-col min-h-screen">
-          <div className="pt-6 flex-shrink-0 flex items-center px-4 md:px-6">
-            <SidebarTrigger className="-ml-1" />
-          </div>
+    <ExtensionDialogProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <div className="flex flex-col min-h-screen">
+            <div className="pt-6 flex-shrink-0 flex items-center px-4 md:px-6">
+              <SidebarTrigger className="-ml-1" />
+            </div>
 
-          {/* Main content area */}
-          <div className="flex-1 flex min-h-0 w-full mx-auto px-4 md:px-8 pb-6">
-            <div className="w-full">
-              {children || <Outlet />}
+            {/* Main content area */}
+            <div className="flex-1 flex min-h-0 w-full mx-auto px-4 md:px-8 pb-6">
+              <div className="w-full">
+                {children || <Outlet />}
+              </div>
             </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </ExtensionDialogProvider>
   );
 };
 

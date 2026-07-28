@@ -93,7 +93,7 @@ class BuyerIntentService:
         if settings.GEMINI_KEY:
             try:
                 genai.configure(api_key=settings.GEMINI_KEY)
-                self.model = genai.GenerativeModel("gemini-2.0-flash")
+                self.model = genai.GenerativeModel("gemini-flash-latest")
                 logger.info("BuyerIntentService: Gemini initialized")
             except Exception as e:
                 logger.error(f"BuyerIntentService init failed: {e}")

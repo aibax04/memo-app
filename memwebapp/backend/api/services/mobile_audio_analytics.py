@@ -27,7 +27,7 @@ class MobileAudioAnalytics:
             return
         
         genai.configure(api_key=settings.GEMINI_KEY)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.model = genai.GenerativeModel('gemini-flash-latest')
         logger.info("Mobile Audio Analytics initialized with Gemini 2.0 Flash")
     
     def extract_analytics(
@@ -239,7 +239,7 @@ class MobileAudioAnalytics:
                 "extraction_timestamp": datetime.now().isoformat(),
                 "transcript_length": len(transcript),
                 "processing_duration_seconds": processing_duration,
-                "model_used": "gemini-2.0-flash",
+                "model_used": "gemini-flash-latest",
                 "analytics_type": "mobile_audio",
                 "participants": participants or [],
                 "duration_minutes": duration_minutes if duration_minutes is not None else 0.0,

@@ -73,7 +73,21 @@ const MeetingDetail: React.FC = () => {
 
     const [meeting, setMeeting] = useState<Meeting | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<TabType>('summary');
+    // Restore the tab from "?tab=..." if present (e.g. returning from the
+    // Google OAuth round trip, which forces a full page reload and would
+    // otherwise always reset back to the Summary tab). Also strips the
+    // param from the URL so it doesn't linger after being consumed.
+    const [activeTab, setActiveTab] = useState<TabType>(() => {
+        const requestedTab = new URLSearchParams(window.location.search).get('tab');
+        const validTabs: TabType[] = ['transcription', 'summary', 'analytics', 'audio', 'ownnote_bot'];
+        if (requestedTab && (validTabs as string[]).includes(requestedTab)) {
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('tab');
+            window.history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search);
+            return requestedTab as TabType;
+        }
+        return 'summary';
+    });
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);

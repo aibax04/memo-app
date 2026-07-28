@@ -146,6 +146,9 @@ env.bak/
 venv.bak/
 .env.backup
 
+# Local secret-testing scratch script (not for commit)
+test_gemini_key.py
+
 
 # Spyder project settings
 .spyderproject

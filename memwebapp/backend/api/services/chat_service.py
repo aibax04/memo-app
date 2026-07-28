@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
     def __init__(self):
-        self.MODEL_ID = "gemini-2.0-flash"
+        self.MODEL_ID = "gemini-flash-latest"
         self.model = None
         
         if settings.GEMINI_KEY:

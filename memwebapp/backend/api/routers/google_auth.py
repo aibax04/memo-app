@@ -20,14 +20,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth/google", tags=["google-authentication"])
 
 @router.get("/login")
-async def google_login(request: Request):
+async def google_login(request: Request, return_to: str = None):
     """Redirect user to Google OAuth2 login"""
     logger.info("🚀 Google login initiated - generating auth URL")
-    
+
     redirect_uri = get_redirect_uri_google(request)
-    auth_url = google_auth_service.get_auth_url(redirect_uri)
+    # return_to (e.g. "/meetings/<id>") rides through Google's OAuth "state"
+    # param unchanged, so the callback knows which page to send the user
+    # back to instead of always landing on the site root.
+    auth_url = google_auth_service.get_auth_url(redirect_uri, state=return_to)
     logger.info(f"🔗 Generated Google auth URL: {auth_url}")
-    
+
     return RedirectResponse(url=auth_url)
 
 @router.post("/callback")
@@ -66,18 +69,18 @@ async def google_callback_post(request: Request, db: Session = Depends(get_db)):
         )
 
 @router.get("/callback")
-async def google_callback_get(code: str, request: Request, db: Session = Depends(get_db)):
+async def google_callback_get(code: str, request: Request, db: Session = Depends(get_db), state: str = None):
     """Handle Google OAuth2 callback via GET"""
     logger.info("📥 GET callback received")
-    
+
     try:
         redirect_uri = get_redirect_uri_google(request)
-        
+
         # Authenticate user
         auth_result = await google_auth_service.authenticate_google_user(code, db, redirect_uri)
         logger.info("✅ Google authentication successful")
-        
-        return create_auth_redirect_response(request, auth_result, "google")
+
+        return create_auth_redirect_response(request, auth_result, "google", return_to=state)
         
     except Exception as e:
         logger.error(f"❌ Google authentication failed: {str(e)}")

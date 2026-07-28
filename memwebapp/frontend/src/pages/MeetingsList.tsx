@@ -24,6 +24,7 @@ import {
     type GroupedAnalysisData,
 } from '@/services/meetingApi';
 import { GroupedAnalysisViewer } from '@/components/GroupedAnalysisViewer';
+import { useExtensionDialog } from '@/context/ExtensionDialogContext';
 import {
     Sheet,
     SheetContent,
@@ -54,6 +55,7 @@ const PLATFORM_CONFIG: Record<string, { label: string; icon: React.ReactNode; co
 
 const MeetingsList: React.FC = () => {
     const navigate = useNavigate();
+    const { openDialog: openExtensionDialog } = useExtensionDialog();
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -624,7 +626,7 @@ const MeetingsList: React.FC = () => {
                             <div className="mt-16 text-center pb-20">
                                 <div className="inline-block p-1 rounded-2xl bg-blue-50 border border-blue-100">
                                     <Button
-                                        onClick={() => window.open('https://ownnote.ai/', '_blank')}
+                                        onClick={openExtensionDialog}
                                         className="bg-[#1B2BB8] hover:bg-blue-800 text-white font-bold rounded-xl px-8 h-12 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                                     >
                                         Start Your First Recording

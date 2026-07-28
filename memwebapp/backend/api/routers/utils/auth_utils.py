@@ -45,20 +45,27 @@ import json
 import urllib.parse
 from fastapi.responses import RedirectResponse
 
-def create_auth_redirect_response(request: Request, auth_result: dict, provider: str) -> RedirectResponse:
+def create_auth_redirect_response(request: Request, auth_result: dict, provider: str, return_to: str = None) -> RedirectResponse:
     """
     Creates a redirect response for the Flutter app or Web frontend with the auth data.
     """
     # Encode the data
     encoded_data = urllib.parse.quote(json.dumps(auth_result))
-    
+
     provider_path = f"auth/{provider}/callback"
-    
+
     # Check if it matches the web path pattern
     # The path usually starts with /api/v1/...
     if f"/web/{provider_path}" in str(request.url.path):
-        # Redirect to frontend callback page for web authentication
-        redirect_url = f"{settings.FRONTEND_URL}?data={encoded_data}"
+        # Send the user back to the page they started from (e.g. a specific
+        # meeting's chatbot) instead of always landing on the site root.
+        # return_to must be a same-site relative path -- never trust it as a
+        # full URL, or this becomes an open-redirect vector.
+        path = return_to if (return_to and return_to.startswith("/") and not return_to.startswith("//")) else ""
+        # path may already carry its own query string (e.g. "?tab=..."), so
+        # append with "&" in that case instead of a second "?".
+        separator = "&" if "?" in path else "?"
+        redirect_url = f"{settings.FRONTEND_URL}{path}{separator}data={encoded_data}"
         logger.info(f"🔗 Redirecting to Web Frontend: {redirect_url}")
     else:   
         # Redirect to custom scheme for mobile

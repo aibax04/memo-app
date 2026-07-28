@@ -7,10 +7,13 @@ import uvicorn
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def main():
     """Start the FastAPI application"""
-    
+
     # Check if required directories exist
     required_dirs = ['api', 'config', 'database']
     missing_dirs = [d for d in required_dirs if not Path(d).exists()]

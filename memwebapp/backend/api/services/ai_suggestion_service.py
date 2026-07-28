@@ -24,7 +24,7 @@ class AISuggestionService:
     def __init__(self):
         """Initialize AI suggestion service with Gemini"""
         self.genai_client = None
-        self.MODEL_ID = "gemini-2.0-flash"
+        self.MODEL_ID = "gemini-flash-latest"
         self.MAX_RETRIES = 3  # Maximum retry attempts
         self.RETRY_DELAY = 2  # Seconds to wait between retries
         

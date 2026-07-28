@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 
 // Use VITE_API_URL if set (empty string = same origin for nginx proxy in production)
-const API_BASE_URL =
+export const API_BASE_URL =
   (import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== null)
     ? String(import.meta.env.VITE_API_URL)
     : (import.meta.env.DEV ? "http://localhost:8000" : "");

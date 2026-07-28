@@ -120,7 +120,13 @@ const ChatBot: React.FC<ChatBotProps> = ({
             return;
         }
         setIsConnectingGoogle(true);
-        window.location.href = `${base}/api/v1/web/auth/google/login`;
+        // Tell the backend which page to send us back to after Google auth
+        // completes, so we land back on this same meeting's chatbot tab
+        // instead of the dashboard (or the meeting page's default Summary
+        // tab, since the OAuth round trip forces a full page reload that
+        // would otherwise reset tab selection to its default).
+        const returnTo = encodeURIComponent(`${window.location.pathname}?tab=ownnote_bot`);
+        window.location.href = `${base}/api/v1/web/auth/google/login?return_to=${returnTo}`;
     };
 
     const resetEmailDraft = () => {
@@ -183,7 +189,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
         try {
             const token = localStorage.getItem('ownnote_access_token');
-            const response = await fetch('/api/v1/chat', {
+            const response = await fetch(`${getBackendOrigin()}/api/v1/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

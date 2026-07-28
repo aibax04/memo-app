@@ -19,10 +19,10 @@ class GoogleAuthService(BaseAuthService):
         )
         logger.info("🔧 GoogleAuthService initialized")
 
-    def get_auth_url(self, redirect_uri: str = None) -> str:
+    def get_auth_url(self, redirect_uri: str = None, state: str = None) -> str:
         """Generate Google OAuth2 authorization URL"""
         actual_redirect_uri = redirect_uri or self.redirect_uri
-        
+
         params = {
             "client_id": self.client_id,
             "response_type": "code",
@@ -31,6 +31,12 @@ class GoogleAuthService(BaseAuthService):
             "access_type": "offline",
             "prompt": "select_account",
         }
+        if state:
+            # Google echoes this back untouched on the callback -- used to
+            # remember which page the user started from (e.g. a specific
+            # meeting's chatbot) so we can send them back there afterward
+            # instead of dumping them on a generic default page.
+            params["state"] = state
         auth_url = f"{google_config.AUTH_URL}?{urlencode(params)}"
         
         logger.info(f"🔗 Generated Google auth URL: {auth_url}")

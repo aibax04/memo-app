@@ -261,7 +261,7 @@ class DashboardService:
             "extraction_timestamp": analytics_data.get("extraction_timestamp", datetime.now().isoformat()),
             "transcript_length": self._safe_int(analytics_data.get("transcript_length", 0)),
             "processing_duration_seconds": self._safe_int(analytics_data.get("processing_duration_seconds", 0)),
-            "model_used": analytics_data.get("model_used", "gemini-2.0-flash"),
+            "model_used": analytics_data.get("model_used", "gemini-flash-latest"),
             "participants": participants_dict,
             "duration_minutes": self._safe_int(analytics_data.get("duration_minutes", 0)),
             "transcriptions": self._format_transcriptions(analytics_data.get("transcriptions", []))

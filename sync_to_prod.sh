@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🚀 Syncing local changes to ext.ownnote.ai (Acknowledge)..."
+echo "🚀 Syncing local changes to ext.makememo.ai (Acknowledge)..."
 
 # 1. Sync files (excluding environment files and heavy folders)
 rsync -avz --exclude '.git' \
@@ -14,6 +14,7 @@ rsync -avz --exclude '.git' \
           --exclude 'memwebapp/frontend/dist' \
           --exclude 'memwebapp/backend/.env' \
           --exclude 'memwebapp/frontend/.env' \
+          --exclude 'memwebapp/memo_meet_recorder' \
           ./ Acknowledge:/home/ubuntu/memoapp/
 
 echo "🏗️  Rebuilding and restarting on server..."
@@ -32,14 +33,13 @@ ssh Acknowledge << 'REMOTE'
   # Frontend build
   cd ../frontend
   npm install --silent
-  VITE_API_URL=https://ext.ownnote.ai VITE_PROMO_CODE=OWNNOTEUSER7860 npm run build
-  
+  VITE_API_URL=https://ext.makememo.ai VITE_PROMO_CODE=OWNNOTEUSER7860 npm run build
+
   # Seed templates
   cd ../backend
   # Migrate data if switching to Postgres (idempotent, non-fatal)
   .venv/bin/python migrate_to_postgres.py || echo "⚠️  Migration skipped (already done or no SQLite DB)"
   .venv/bin/python seed_templates.py || echo "⚠️  Seed templates skipped"
-  .venv/bin/python seed_sample_meeting.py || echo "⚠️  Seed sample meeting skipped"
   
   # Restart services
   sudo systemctl restart memoapp-backend
@@ -47,4 +47,4 @@ ssh Acknowledge << 'REMOTE'
   sudo systemctl reload nginx
 REMOTE
 
-echo "✅ Deployment complete! Check https://ext.ownnote.ai"
+echo "✅ Deployment complete! Check https://ext.makememo.ai"
